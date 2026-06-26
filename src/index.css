@@ -1,0 +1,130 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Poppins:wght@300;400;500;600;700;800&display=swap');
+
+@import "tailwindcss";
+
+@theme {
+  --color-primary-dark: #1B4332;
+  --color-primary-medium: #2D6A4F;
+  --color-primary-light: #52B788;
+  --color-brand-beige: #F8F3E9;
+  --color-brand-beige-dark: #E9DCC9;
+  --color-neutral-gray: #6B7280;
+  
+  --font-sans: "Inter", sans-serif;
+  --font-poppins: "Poppins", sans-serif;
+}
+
+@layer base {
+  body {
+    @apply bg-brand-beige text-gray-800 font-sans antialiased min-h-screen flex flex-col;
+    font-family: var(--font-sans);
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-poppins);
+  }
+}
+
+/* Custom styles for Leaflet/Maps and Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-brand-beige);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-primary-medium);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-primary-dark);
+}
+
+/* Skeleton animation */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+.skeleton-shimmer {
+  background: linear-gradient(90deg, #E5E7EB 25%, #F3F4F6 50%, #E5E7EB 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+/* Global glassmorphism inputs overrides */
+input[type="text"],
+input[type="email"],
+input[type="tel"],
+input[type="number"],
+input[type="password"],
+input[type="datetime-local"],
+textarea,
+select {
+  background-color: rgba(0, 0, 0, 0.03) !important;
+  backdrop-filter: blur(2px) !important;
+  transition: background-color 0.2s, border-color 0.2s, color 0.2s;
+}
+
+.dark input[type="text"],
+.dark input[type="email"],
+.dark input[type="tel"],
+.dark input[type="number"],
+.dark input[type="password"],
+.dark input[type="datetime-local"],
+.dark textarea,
+.dark select {
+  background-color: rgba(255, 255, 255, 0.03) !important;
+}
+
+/* Selected/focused inputs & select dropdowns styling */
+input[type="text"]:focus,
+input[type="email"]:focus,
+input[type="tel"]:focus,
+input[type="number"]:focus,
+input[type="password"]:focus,
+input[type="datetime-local"]:focus,
+textarea:focus,
+select:focus {
+  background-color: #000000 !important;
+  color: #ffffff !important;
+  caret-color: #ffffff !important;
+}
+
+input.hero-search-input:focus {
+  background-color: transparent !important;
+  color: #ffffff !important;
+  caret-color: #ffffff !important;
+}
+
+/* Hide placeholder when input is focused/selected */
+input:focus::placeholder,
+textarea:focus::placeholder {
+  color: transparent !important;
+  opacity: 0 !important;
+}
+
+select option {
+  background-color: #000000 !important;
+  color: #ffffff !important;
+}
+
+/* Fix browser autofill background color overriding in Webkit browsers */
+input:-webkit-autofill,
+input:-webkit-autofill:hover, 
+input:-webkit-autofill:focus, 
+input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 30px rgba(248, 243, 233, 0.95) inset !important; /* matches brand beige */
+  -webkit-text-fill-color: inherit !important;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
+.dark input:-webkit-autofill,
+.dark input:-webkit-autofill:hover, 
+.dark input:-webkit-autofill:focus, 
+.dark input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 30px rgba(24, 24, 27, 0.95) inset !important; /* matches zinc 900 */
+}
