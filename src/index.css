@@ -81,24 +81,7 @@ select {
 }
 
 /* Selected/focused inputs & select dropdowns styling */
-input[type="text"]:focus,
-input[type="email"]:focus,
-input[type="tel"]:focus,
-input[type="number"]:focus,
-input[type="password"]:focus,
-input[type="datetime-local"]:focus,
-textarea:focus,
-select:focus {
-  background-color: #000000 !important;
-  color: #ffffff !important;
-  caret-color: #ffffff !important;
-}
-
-input.hero-search-input:focus {
-  background-color: transparent !important;
-  color: #ffffff !important;
-  caret-color: #ffffff !important;
-}
+/* Focus styles are handled by tailwind classes or default theme styles to maintain original background and text colors */
 
 /* Hide placeholder when input is focused/selected */
 input:focus::placeholder,
@@ -127,4 +110,13 @@ input:-webkit-autofill:active {
 .dark input:-webkit-autofill:focus, 
 .dark input:-webkit-autofill:active {
   -webkit-box-shadow: 0 0 0 30px rgba(24, 24, 27, 0.95) inset !important; /* matches zinc 900 */
+}
+
+/* Force autofill background to be transparent specifically on login inputs */
+.login-input:-webkit-autofill,
+.login-input:-webkit-autofill:hover, 
+.login-input:-webkit-autofill:focus, 
+.login-input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 1000px transparent inset !important;
+  -webkit-text-fill-color: #ffffff !important;
 }

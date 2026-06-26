@@ -76,7 +76,7 @@ const AdminLogin: React.FC = () => {
             <label className="block text-xs font-semibold text-gray-600 dark:text-zinc-400 mb-1">
               E-mail Administrativo
             </label>
-            <div className="flex items-center rounded-xl border border-gray-200 dark:border-zinc-800 bg-black/[0.03] dark:bg-white/[0.03] backdrop-blur-[2px] px-3.5 py-2.5">
+            <div className="flex items-center rounded-xl border border-gray-200 dark:border-zinc-800 bg-black/[0.03] dark:bg-white/[0.03] backdrop-blur-[2px] px-3.5 py-2.5 focus-within:border-primary-medium transition-colors">
               <Mail className="h-4 w-4 text-gray-400 shrink-0 mr-2" />
               <input
                 type="email"
@@ -84,7 +84,7 @@ const AdminLogin: React.FC = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="contato@ruralizanegocios.com.br"
-                className="w-full text-xs bg-transparent focus:outline-none dark:text-white placeholder-gray-400"
+                className="w-full text-xs bg-transparent focus:outline-none dark:text-white placeholder-gray-400 login-input"
               />
             </div>
           </div>
@@ -93,7 +93,7 @@ const AdminLogin: React.FC = () => {
             <label className="block text-xs font-semibold text-gray-600 dark:text-zinc-400 mb-1">
               Senha de Acesso
             </label>
-            <div className="flex items-center rounded-xl border border-gray-200 dark:border-zinc-800 bg-black/[0.03] dark:bg-white/[0.03] backdrop-blur-[2px] px-3.5 py-2.5">
+            <div className="flex items-center rounded-xl border border-gray-200 dark:border-zinc-800 bg-black/[0.03] dark:bg-white/[0.03] backdrop-blur-[2px] px-3.5 py-2.5 focus-within:border-primary-medium transition-colors">
               <Lock className="h-4 w-4 text-gray-400 shrink-0 mr-2" />
               <input
                 type={showPassword ? 'text' : 'password'}
@@ -101,7 +101,7 @@ const AdminLogin: React.FC = () => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full text-xs bg-transparent focus:outline-none dark:text-white placeholder-gray-400"
+                className="w-full text-xs bg-transparent focus:outline-none dark:text-white placeholder-gray-400 login-input"
               />
               <button
                 type="button"
