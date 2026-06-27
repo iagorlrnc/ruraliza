@@ -125,7 +125,7 @@ const SellersList: React.FC = () => {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h2 className="font-poppins text-lg font-bold text-gray-800 dark:text-white">Gestão de Vendedores / Corretores</h2>
-          <p className="text-xs text-gray-505 mt-0.5">Gerencie os corretores, engenheiros e a equipe técnica exibida na página pública "Sobre Nós".</p>
+          <p className="text-xs text-gray-505 mt-0.5">Gerencie os corretores, engenheiros e a equipe técnica exibida na página pública "Equipe".</p>
         </div>
         {!formOpen && (
           <button

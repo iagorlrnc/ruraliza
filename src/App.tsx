@@ -22,6 +22,7 @@ import Home from './pages/Home';
 import Imoveis from './pages/Imoveis';
 import DetalheImovel from './pages/DetalheImovel';
 import Sobre from './pages/Sobre';
+import Equipe from './pages/Equipe';
 import Contato from './pages/Contato';
 
 // Administrative Pages
@@ -90,6 +91,7 @@ const App: React.FC = () => {
                     <Route path="/imoveis" element={<Imoveis />} />
                     <Route path="/imoveis/:id" element={<DetalheImovel />} />
                     <Route path="/sobre" element={<Sobre />} />
+                    <Route path="/equipe" element={<Equipe />} />
                     <Route path="/contato" element={<Contato />} />
                   </Route>
 

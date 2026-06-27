@@ -1,5 +1,5 @@
 import React from 'react';
-import { Target, Eye, Heart, Users2, Landmark, MapPin, Award, Briefcase, TrendingUp } from 'lucide-react';
+import { Target, Eye, Heart, Landmark, MapPin, Award, Briefcase, TrendingUp } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useSEO } from '../hooks/useSEO';
 import { useQuery } from '@tanstack/react-query';
@@ -34,12 +34,6 @@ const timelineEvents = [
 
 const Sobre: React.FC = () => {
   useSEO('Sobre Nós', 'Conheça a história da Ruraliza Negócios, referência em intermediação imobiliária rural no Tocantins e sul do Pará.');
-
-  // Fetch sellers
-  const { data: team = [] } = useQuery({
-    queryKey: ['sellers'],
-    queryFn: api.getVendedores
-  });
 
   // Fetch settings for dynamic CRECI
   const { data: config } = useQuery({
@@ -185,50 +179,7 @@ const Sobre: React.FC = () => {
         </div>
       </section>
 
-      {/* Team */}
-      <section className="mx-auto max-w-5xl px-4 space-y-10">
-        <div className="text-center max-w-sm mx-auto space-y-2">
-          <div className="h-10 w-10 bg-primary-medium/10 rounded-full flex items-center justify-center mx-auto text-primary-medium">
-            <Users2 className="h-5 w-5" />
-          </div>
-          <h2 className="font-poppins text-xl sm:text-2xl font-bold text-primary-dark dark:text-white">
-            Nossos Especialistas
-          </h2>
-          <p className="text-xs text-gray-500 dark:text-zinc-400">
-            Conheça a equipe técnica que cuida de cada etapa de sua negociação rural.
-          </p>
-        </div>
 
-        {team.length === 0 ? (
-          <div className="text-center py-8 bg-white dark:bg-zinc-900 border border-gray-100 dark:border-zinc-800 rounded-3xl p-6 shadow-sm">
-            <p className="text-sm text-gray-500 dark:text-zinc-400 font-medium">Sem informações no momento.</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {team.map((t, idx) => (
-              <motion.div
-                key={t.id}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.5, delay: idx * 0.1 }}
-                className="bg-white dark:bg-zinc-900 border border-gray-100 dark:border-zinc-800 rounded-3xl p-6 shadow-sm space-y-4 hover:shadow-md transition-shadow text-center flex flex-col items-center"
-              >
-                <div className="h-28 w-28 rounded-full overflow-hidden border-2 border-primary-medium/20 shadow-inner">
-                  <img src={t.foto || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80'} alt={t.nome} className="w-full h-full object-cover" data-no-protect />
-                </div>
-                <div className="space-y-1">
-                  <h3 className="font-poppins font-bold text-sm text-gray-800 dark:text-white">{t.nome}</h3>
-                  <span className="text-[10px] text-primary-medium dark:text-primary-light font-bold block">{t.role}</span>
-                </div>
-                <p className="text-[11px] text-gray-500 dark:text-zinc-400 leading-relaxed font-sans">
-                  {t.especializacao}
-                </p>
-              </motion.div>
-            ))}
-          </div>
-        )}
-      </section>
 
       {/* Credibility / Trust Stamp */}
       <section className="mx-auto max-w-4xl px-4">

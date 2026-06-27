@@ -1,7 +1,7 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../../services/api';
-import { formatDateTime } from '../../utils/format';
+import { formatDateTime, formatArea } from '../../utils/format';
 import { Link } from 'react-router-dom';
 import { 
   Home, 
@@ -13,7 +13,11 @@ import {
   Calendar, 
   Sparkles,
   ChevronRight,
-  TrendingUp
+  TrendingUp,
+  BarChart3,
+  PieChart,
+  Layers,
+  MapPin
 } from 'lucide-react';
 
 const Dashboard: React.FC = () => {
@@ -29,9 +33,15 @@ const Dashboard: React.FC = () => {
     queryFn: api.getMessages
   });
 
+  // Fetch all properties for chart data computation
+  const { data: properties = [], isLoading: loadingProperties } = useQuery({
+    queryKey: ['admin-properties'],
+    queryFn: api.getProperties
+  });
+
   const recentMessages = messages.slice(0, 4);
 
-  if (loadingMetrics || loadingMessages) {
+  if (loadingMetrics || loadingMessages || loadingProperties) {
     return (
       <div className="space-y-6">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -56,6 +66,50 @@ const Dashboard: React.FC = () => {
     { name: 'Mensagens Pendentes', value: metrics?.mensagensPendentes || 0, icon: MessageSquare, color: 'bg-rose-500/10 text-rose-600', link: '/mensagens' },
     { name: 'Agendamentos de Visita', value: metrics?.solicitacoesVisita || 0, icon: Calendar, color: 'bg-cyan-500/10 text-cyan-600', link: '/mensagens' }
   ];
+
+  // --- CHART 1: DONUT (Tipo de Imóveis) ---
+  const typeCounts = properties.reduce((acc, p) => {
+    acc[p.tipo] = (acc[p.tipo] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+
+  const typeData = Object.entries(typeCounts).map(([name, value]) => ({ name, value }));
+  const totalTypes = typeData.reduce((sum, item) => sum + item.value, 0);
+
+  const donutColors = ['#2D6A4F', '#40916C', '#52B788', '#74C69D', '#95D5B2', '#D8F3DC'];
+  const radius = 50;
+  const circumference = 2 * Math.PI * radius; // 314.16
+
+  let accumulatedPercent = 0;
+  const donutSlices = typeData.map((item, index) => {
+    const percent = totalTypes > 0 ? item.value / totalTypes : 0;
+    const strokeLength = percent * circumference;
+    const strokeOffset = circumference - (accumulatedPercent * circumference) + (circumference / 4); // top offset
+    accumulatedPercent += percent;
+    return {
+      ...item,
+      percent,
+      strokeLength,
+      strokeOffset,
+      color: donutColors[index % donutColors.length]
+    };
+  });
+
+  // --- CHART 2: BARS (Top 5 Imóveis Mais Visitados) ---
+  const topProperties = [...properties]
+    .sort((a, b) => (b.visualizacoes || 0) - (a.visualizacoes || 0))
+    .slice(0, 5);
+
+  const maxViews = Math.max(...topProperties.map(p => p.visualizacoes || 0), 5);
+
+  // --- CHART 3: AREA/VOLUME (Hectares sob Gestão por Estado) ---
+  const stateAreas = properties.reduce((acc, p) => {
+    acc[p.estado] = (acc[p.estado] || 0) + p.area_total;
+    return acc;
+  }, {} as Record<string, number>);
+
+  const stateData = Object.entries(stateAreas).map(([state, area]) => ({ state, area }));
+  const maxAreaVal = Math.max(...stateData.map(d => d.area), 10);
 
   return (
     <div className="space-y-8 text-left">
@@ -91,6 +145,178 @@ const Dashboard: React.FC = () => {
           );
         })}
       </div>
+
+      {/* --- DASHBOARD CHARTS SECTION --- */}
+      <section className="space-y-6">
+        <h3 className="font-poppins text-sm font-bold text-gray-800 dark:text-white uppercase tracking-wider flex items-center gap-2">
+          <BarChart3 className="h-4.5 w-4.5 text-primary-medium" /> Análise Gráfica & Desempenho
+        </h3>
+        
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Chart 1: Donut (Distribution of Property Types) */}
+          <div className="bg-white dark:bg-zinc-900 border border-gray-150 dark:border-zinc-800 rounded-3xl p-5 shadow-sm space-y-4 flex flex-col justify-between">
+            <div className="flex items-center justify-between border-b border-gray-100 dark:border-zinc-800 pb-3">
+              <h4 className="font-poppins text-xs font-bold text-gray-800 dark:text-white flex items-center gap-2">
+                <PieChart className="h-4 w-4 text-emerald-600" /> Distribuição por Tipo
+              </h4>
+              <span className="text-[10px] text-gray-450 dark:text-zinc-500 font-bold font-sans">
+                {totalTypes} Imóveis
+              </span>
+            </div>
+
+            {totalTypes === 0 ? (
+              <div className="h-48 flex items-center justify-center text-xs text-gray-450 dark:text-zinc-500">
+                Nenhum imóvel disponível para o gráfico.
+              </div>
+            ) : (
+              <div className="flex flex-col items-center sm:flex-row sm:justify-around gap-4 py-2">
+                {/* SVG Donut */}
+                <div className="relative h-32 w-32 shrink-0">
+                  <svg className="h-full w-full transform -rotate-90" viewBox="0 0 120 120">
+                    <circle
+                      cx="60"
+                      cy="60"
+                      r={radius}
+                      className="fill-transparent stroke-gray-100 dark:stroke-zinc-800"
+                      strokeWidth="12"
+                    />
+                    {donutSlices.map((slice) => (
+                      <circle
+                        key={slice.name}
+                        cx="60"
+                        cy="60"
+                        r={radius}
+                        className="fill-transparent transition-all duration-500 hover:stroke-[14px]"
+                        stroke={slice.color}
+                        strokeWidth="12"
+                        strokeDasharray={`${slice.strokeLength} ${circumference}`}
+                        strokeDashoffset={slice.strokeOffset}
+                        strokeLinecap="round"
+                      />
+                    ))}
+                  </svg>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center">
+                    <span className="text-lg font-poppins font-black text-gray-800 dark:text-white">
+                      {totalTypes}
+                    </span>
+                    <span className="text-[8px] text-gray-400 font-bold uppercase tracking-wider">
+                      Total
+                    </span>
+                  </div>
+                </div>
+
+                {/* Legend */}
+                <div className="space-y-2 text-xs font-medium w-full max-w-[140px]">
+                  {donutSlices.map((slice) => (
+                    <div key={slice.name} className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 truncate">
+                        <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: slice.color }}></span>
+                        <span className="text-gray-650 dark:text-zinc-400 truncate">{slice.name}</span>
+                      </div>
+                      <span className="font-mono text-gray-450 font-semibold">
+                        {slice.value}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Chart 2: Bar Chart (Top 5 Visited Properties) */}
+          <div className="bg-white dark:bg-zinc-900 border border-gray-150 dark:border-zinc-800 rounded-3xl p-5 shadow-sm space-y-4 flex flex-col justify-between">
+            <div className="flex items-center justify-between border-b border-gray-100 dark:border-zinc-800 pb-3">
+              <h4 className="font-poppins text-xs font-bold text-gray-800 dark:text-white flex items-center gap-2">
+                <BarChart3 className="h-4 w-4 text-indigo-600" /> Mais Visitados (Publico)
+              </h4>
+              <span className="text-[10px] text-gray-450 dark:text-zinc-500 font-bold font-sans">
+                Views
+              </span>
+            </div>
+
+            {topProperties.length === 0 ? (
+              <div className="h-48 flex items-center justify-center text-xs text-gray-450 dark:text-zinc-500">
+                Nenhum dado de visualização disponível.
+              </div>
+            ) : (
+              <div className="flex flex-col justify-end h-40 pt-4 space-y-2">
+                {/* Visual Bar Charts */}
+                <div className="flex items-end justify-around h-full px-2 gap-4">
+                  {topProperties.map((prop) => {
+                    const views = prop.visualizacoes || 0;
+                    const heightPercent = Math.min(100, Math.max(10, (views / maxViews) * 100));
+                    return (
+                      <div key={prop.id} className="flex flex-col items-center group w-full relative">
+                        {/* Tooltip */}
+                        <div className="absolute -top-7 opacity-0 group-hover:opacity-100 transition-opacity bg-zinc-900 dark:bg-zinc-850 text-white text-[9px] font-bold px-2 py-0.5 rounded shadow-md pointer-events-none z-10 whitespace-nowrap font-sans">
+                          {views} views
+                        </div>
+
+                        {/* Bar */}
+                        <div 
+                          className="w-8 bg-gradient-to-t from-indigo-600 to-indigo-400 group-hover:from-indigo-500 group-hover:to-indigo-300 rounded-t-lg transition-all duration-500 relative"
+                          style={{ height: `${heightPercent}%` }}
+                        >
+                          <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity rounded-t-lg"></div>
+                        </div>
+
+                        {/* Code label */}
+                        <span className="text-[9px] text-gray-500 dark:text-zinc-400 font-bold tracking-wider uppercase mt-2 block font-sans">
+                          {prop.codigo}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Chart 3: Volume Chart (Total Managed Hectares by State) */}
+          <div className="bg-white dark:bg-zinc-900 border border-gray-150 dark:border-zinc-800 rounded-3xl p-5 shadow-sm space-y-4 flex flex-col justify-between">
+            <div className="flex items-center justify-between border-b border-gray-100 dark:border-zinc-800 pb-3">
+              <h4 className="font-poppins text-xs font-bold text-gray-800 dark:text-white flex items-center gap-2">
+                <Layers className="h-4 w-4 text-primary-medium" /> Hectares por Estado
+              </h4>
+              <span className="text-[10px] text-gray-450 dark:text-zinc-500 font-bold font-sans">
+                Área Total
+              </span>
+            </div>
+
+            {stateData.length === 0 ? (
+              <div className="h-48 flex items-center justify-center text-xs text-gray-450 dark:text-zinc-500">
+                Nenhum dado de área disponível.
+              </div>
+            ) : (
+              <div className="space-y-3 font-sans">
+                {stateData.map((d) => {
+                  const percent = Math.min(100, Math.max(5, (d.area / maxAreaVal) * 100));
+                  return (
+                    <div key={d.state} className="space-y-1">
+                      <div className="flex items-center justify-between text-[11px] font-semibold text-gray-600 dark:text-zinc-400">
+                        <span className="flex items-center gap-1">
+                          <MapPin className="h-3 w-3 text-primary-medium" /> {d.state}
+                        </span>
+                        <span className="font-mono text-gray-850 dark:text-zinc-200">
+                          {formatArea(d.area)}
+                        </span>
+                      </div>
+                      
+                      {/* Bar indicator track */}
+                      <div className="h-2 w-full bg-gray-100 dark:bg-zinc-800 rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-primary-medium hover:bg-primary-light transition-all duration-500 rounded-full"
+                          style={{ width: `${percent}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
 
       {/* Grid: Recent Leads & Notifications */}
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">

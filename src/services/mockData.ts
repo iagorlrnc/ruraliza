@@ -360,7 +360,11 @@ export const mockDb = {
   getProperties: (): Imovel[] => {
     initializeStorage();
     const data = localStorage.getItem(STORAGE_KEYS.PROPERTIES);
-    return data ? JSON.parse(data).filter((p: Imovel) => p.status !== 'Excluido') : [];
+    const list: Imovel[] = data ? JSON.parse(data).filter((p: Imovel) => p.status !== 'Excluido') : [];
+    return list.map(p => ({
+      ...p,
+      visualizacoes: mockDb.getPropertyViews(p.id)
+    }));
   },
 
   getPropertyById: (id: string): Imovel | undefined => {

@@ -134,6 +134,28 @@ const DetalheImovel: React.FC = () => {
     enabled: !!id
   });
 
+  // Increment view count only once per user/property using localStorage tracking
+  useEffect(() => {
+    if (id) {
+      const viewedKey = 'ruraliza_viewed_properties';
+      try {
+        const viewedList = JSON.parse(localStorage.getItem(viewedKey) || '[]');
+        if (!viewedList.includes(id)) {
+          viewedList.push(id);
+          localStorage.setItem(viewedKey, JSON.stringify(viewedList));
+          api.incrementPropertyViews(id).catch((err) =>
+            console.error('Error incrementing view count:', err)
+          );
+        }
+      } catch (e) {
+        // Fallback in case localStorage is blocked
+        api.incrementPropertyViews(id).catch((err) =>
+          console.error('Error incrementing view count:', err)
+        );
+      }
+    }
+  }, [id]);
+
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
 

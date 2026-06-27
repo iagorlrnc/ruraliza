@@ -35,7 +35,7 @@ export const api = {
   // --- PROPERTIES (IMOVEIS) ---
   getProperties: async (): Promise<Imovel[]> => {
     if (!isSupabaseConfigured()) {
-      return [];
+      return mockDb.getProperties();
     }
 
     const { data, error } = await supabase
@@ -66,6 +66,7 @@ export const api = {
       status: row.status,
       created_at: row.created_at,
       updated_at: row.updated_at,
+      visualizacoes: row.visualizacoes !== undefined ? Number(row.visualizacoes || 0) : mockDb.getPropertyViews(row.id),
       imagens: (row.tabela_imagens_imoveis || []).map((img: any) => ({
         id: img.id,
         imovel_id: img.imovel_id,
@@ -77,11 +78,8 @@ export const api = {
 
   getPropertyById: async (id: string): Promise<Imovel | undefined> => {
     if (!isSupabaseConfigured()) {
-      return undefined;
+      return mockDb.getPropertyById(id);
     }
-
-    // Increment view count locally for simplicity
-    mockDb.incrementView(id);
 
     const { data, error } = await supabase
       .from('tabela_imoveis')
@@ -114,6 +112,7 @@ export const api = {
       status: data.status,
       created_at: data.created_at,
       updated_at: data.updated_at,
+      visualizacoes: data.visualizacoes !== undefined ? Number(data.visualizacoes || 0) : mockDb.getPropertyViews(data.id),
       imagens: (data.tabela_imagens_imoveis || []).map((img: any) => ({
         id: img.id,
         imovel_id: img.imovel_id,
@@ -121,6 +120,22 @@ export const api = {
         ordem: img.ordem
       })).sort((a: any, b: any) => a.ordem - b.ordem)
     };
+  },
+
+  incrementPropertyViews: async (id: string): Promise<void> => {
+    // 1. Increment locally first
+    mockDb.incrementView(id);
+
+    // 2. Try incrementing in Supabase database if configured
+    if (isSupabaseConfigured()) {
+      try {
+        await supabase.rpc('incrementar_visualizacoes_imovel', {
+          p_imovel_id: id
+        });
+      } catch (err) {
+        console.warn('Failed to increment views on Supabase (this is normal if the SQL function or visualizacoes column is not created yet):', err);
+      }
+    }
   },
 
   saveProperty: async (property: Partial<Imovel> & { titulo: string }): Promise<Imovel> => {
@@ -548,7 +563,8 @@ export const api = {
         adminCount,
         messageCount,
         pendingMsgCount,
-        visitCount
+        visitCount,
+        viewsResult
       ] = await Promise.all([
         supabase.from('tabela_imoveis').select('id', { count: 'exact', head: true }).neq('status', 'Excluido'),
         supabase.from('tabela_imoveis').select('id', { count: 'exact', head: true }).eq('modalidade', 'Venda').neq('status', 'Excluido'),
@@ -558,11 +574,16 @@ export const api = {
         supabase.from('tabela_usuarios').select('id', { count: 'exact', head: true }).eq('perfil', 'Administrador'),
         supabase.from('tabela_mensagens').select('id', { count: 'exact', head: true }),
         supabase.from('tabela_mensagens').select('id', { count: 'exact', head: true }).in('status', ['Nova', 'Em andamento']),
-        supabase.from('tabela_solicitacoes_visita').select('id', { count: 'exact', head: true })
+        supabase.from('tabela_solicitacoes_visita').select('id', { count: 'exact', head: true }),
+        supabase.from('tabela_imoveis').select('visualizacoes').neq('status', 'Excluido')
       ]);
 
-      // Calculate total views from views metrics (stored locally/mock since pageviews is typically tracked client-side)
       const mockMetrics = mockDb.getMetrics();
+      const hasDatabaseViews = viewsResult.data && viewsResult.data.length > 0 && ('visualizacoes' in viewsResult.data[0]);
+      
+      const totalDatabaseViews = hasDatabaseViews
+        ? viewsResult.data.reduce((sum: number, row: any) => sum + Number(row.visualizacoes || 0), 0)
+        : mockMetrics.totalVisualizacoes;
 
       return {
         totalImoveis: propCount.count || 0,
@@ -575,7 +596,7 @@ export const api = {
         mensagensPendentes: pendingMsgCount.count || 0,
         leadsMes: mockMetrics.leadsMes, // fallback to calculated monthly leads
         solicitacoesVisita: visitCount.count || 0,
-        totalVisualizacoes: mockMetrics.totalVisualizacoes // view counts tracked inside user browser sessions
+        totalVisualizacoes: totalDatabaseViews
       };
     } catch (e) {
       console.warn('Failed to fetch metrics from Supabase, using mockDb fallback:', e);
@@ -637,7 +658,7 @@ export const api = {
   // --- SELLERS ---
   getVendedores: async (): Promise<Vendedor[]> => {
     if (!isSupabaseConfigured()) {
-      return [];
+      return mockDb.getVendedores();
     }
     const { data, error } = await supabase
       .from('tabela_vendedores')

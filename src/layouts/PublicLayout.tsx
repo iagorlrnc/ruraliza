@@ -146,6 +146,7 @@ const PublicLayout: React.FC = () => {
     { name: 'Início', path: '/' },
     { name: 'Imóveis', path: '/imoveis' },
     { name: 'Sobre Nós', path: '/sobre' },
+    { name: 'Equipe', path: '/equipe' },
     { name: 'Contato', path: '/contato' }
   ];
 
@@ -159,7 +160,7 @@ const PublicLayout: React.FC = () => {
   const isHome = location.pathname === '/';
 
   return (
-    <div className={`min-h-screen flex flex-col bg-brand-beige dark:bg-zinc-950 text-gray-800 dark:text-zinc-100 transition-colors duration-300 ${showWatermark ? 'watermark-active' : ''}`}>
+    <div className={`public-layout min-h-screen flex flex-col bg-brand-beige dark:bg-zinc-950 text-gray-800 dark:text-zinc-100 transition-colors duration-300 ${showWatermark ? 'watermark-active' : ''}`}>
       {/* Fixed Header */}
       <header className={`fixed top-0 left-0 right-0 z-40 border-b border-primary-dark/10 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md transition-all duration-500 ${
         isHome && !scrolled 
@@ -349,7 +350,18 @@ const PublicLayout: React.FC = () => {
             display: none !important;
           }
         }
-        img {
+        /* Exclude leaflet components completely from any image protection */
+        .leaflet-container img, 
+        .leaflet-marker-icon, 
+        .leaflet-marker-shadow, 
+        .leaflet-tile {
+          -webkit-user-drag: auto !important;
+          user-select: auto !important;
+          pointer-events: auto !important;
+          filter: none !important;
+        }
+
+        .public-layout img:not(.leaflet-tile):not(.leaflet-marker-icon):not(.leaflet-marker-shadow) {
           -webkit-user-drag: none !important;
           -khtml-user-drag: none !important;
           -moz-user-drag: none !important;
@@ -359,7 +371,7 @@ const PublicLayout: React.FC = () => {
         }
 
         /* When watermark is active, blur all content images and show logo overlay */
-        .watermark-active img:not([data-no-protect]):not(.leaflet-tile) {
+        .public-layout.watermark-active img:not([data-no-protect]):not(.leaflet-tile):not(.leaflet-marker-icon):not(.leaflet-marker-shadow) {
           filter: blur(16px) brightness(0.5) !important;
           transition: filter 0.2s ease;
         }
@@ -370,10 +382,10 @@ const PublicLayout: React.FC = () => {
         }
 
         /* Overlay the logo watermark on every image container */
-        .watermark-active *:not(.leaflet-container):not(.leaflet-tile-pane):not(.leaflet-layer):has(> img:not([data-no-protect]):not(.leaflet-tile)) {
+        .public-layout.watermark-active *:not(.leaflet-container):not(.leaflet-tile-pane):not(.leaflet-layer):has(> img:not([data-no-protect]):not(.leaflet-tile):not(.leaflet-marker-icon):not(.leaflet-marker-shadow)) {
           position: relative;
         }
-        .watermark-active *:not(.leaflet-container):not(.leaflet-tile-pane):not(.leaflet-layer):has(> img:not([data-no-protect]):not(.leaflet-tile))::after {
+        .public-layout.watermark-active *:not(.leaflet-container):not(.leaflet-tile-pane):not(.leaflet-layer):has(> img:not([data-no-protect]):not(.leaflet-tile):not(.leaflet-marker-icon):not(.leaflet-marker-shadow))::after {
           content: '';
           position: absolute;
           inset: 0;

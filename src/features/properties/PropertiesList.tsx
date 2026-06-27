@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../services/api';
 import { formatCurrency, formatArea } from '../../utils/format';
 import { useToast } from '../../contexts/ToastContext';
-import { Plus, Edit2, Trash2, Search, Star } from 'lucide-react';
+import { Plus, Edit2, Trash2, Search, Star, Eye } from 'lucide-react';
 
 const PropertiesList: React.FC = () => {
   const navigate = useNavigate();
@@ -94,7 +94,7 @@ const PropertiesList: React.FC = () => {
                 <tr>
                   <th className="px-6 py-4">Cód.</th>
                   <th className="px-6 py-4">Imóvel</th>
-                  <th className="px-6 py-4">Tipo</th>
+                  <th className="px-6 py-4">Visualizações</th>
                   <th className="px-6 py-4">Localização</th>
                   <th className="px-6 py-4">Área</th>
                   <th className="px-6 py-4">Valor</th>
@@ -117,7 +117,11 @@ const PropertiesList: React.FC = () => {
                         {prop.modalidade === 'Venda' ? 'Venda' : 'Aluguel'}
                       </span>
                     </td>
-                    <td className="px-6 py-4">{prop.tipo}</td>
+                    <td className="px-6 py-4">
+                       <span className="inline-flex items-center gap-1 text-gray-550 dark:text-zinc-400 font-mono font-medium">
+                         <Eye className="h-3.5 w-3.5 text-gray-400 shrink-0" /> {prop.visualizacoes || 0}
+                       </span>
+                     </td>
                     <td className="px-6 py-4 text-gray-500 dark:text-zinc-400">
                       {prop.cidade} - {prop.estado}
                     </td>

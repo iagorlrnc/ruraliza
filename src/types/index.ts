@@ -39,6 +39,7 @@ export interface Imovel {
   created_at: string;
   updated_at: string;
   imagens?: ImagemImovel[];
+  visualizacoes?: number;
 }
 
 export interface ImagemImovel {

@@ -21,6 +21,7 @@ const Imoveis: React.FC = () => {
   const [precoMax, setPrecoMax] = useState(searchParams.get('precoMax') || '');
   const [areaMin, setAreaMin] = useState(searchParams.get('areaMin') || '');
   const [areaMax, setAreaMax] = useState(searchParams.get('areaMax') || '');
+  const [sortBy, setSortBy] = useState('recentes');
 
   // Synchronize state from query parameters on mount or URL changes
   useEffect(() => {
@@ -82,6 +83,24 @@ const Imoveis: React.FC = () => {
     if (areaMax && prop.area_total > Number(areaMax)) return false;
 
     return true;
+  });
+
+  // Sort properties based on active sorting criteria
+  const sortedProperties = [...filteredProperties].sort((a, b) => {
+    if (sortBy === 'preco-asc') {
+      return a.valor - b.valor;
+    }
+    if (sortBy === 'preco-desc') {
+      return b.valor - a.valor;
+    }
+    if (sortBy === 'views-desc') {
+      return (b.visualizacoes || 0) - (a.visualizacoes || 0);
+    }
+    if (sortBy === 'area-desc') {
+      return b.area_total - a.area_total;
+    }
+    // Default to 'recentes' (newest first)
+    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
   });
 
   // Unique list of cities and states for options dropdown
@@ -285,10 +304,28 @@ const Imoveis: React.FC = () => {
 
         {/* Properties Catalog Grid */}
         <section className="lg:col-span-3 space-y-6">
-          <div className="flex justify-between items-center text-xs font-medium text-gray-500 dark:text-zinc-400 bg-white dark:bg-zinc-900 border border-gray-150 dark:border-zinc-800 px-5 py-3 rounded-2xl shadow-sm">
-            <span>
-              Mostrando <strong className="text-gray-800 dark:text-white">{filteredProperties.length}</strong> de <strong className="text-gray-800 dark:text-white">{properties.filter(p => p.status === 'Ativo').length}</strong> propriedades
-            </span>
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 text-xs font-medium text-gray-500 dark:text-zinc-400 bg-white dark:bg-zinc-900 border border-gray-150 dark:border-zinc-800 px-5 py-3 rounded-2xl shadow-sm">
+            <div className="flex flex-wrap items-center gap-3">
+              <span>
+                Mostrando <strong className="text-gray-800 dark:text-white">{filteredProperties.length}</strong> de <strong className="text-gray-800 dark:text-white">{properties.filter(p => p.status === 'Ativo').length}</strong> propriedades
+              </span>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+              <label htmlFor="sort-by" className="font-bold text-gray-700 dark:text-zinc-350">Classificar por:</label>
+              <select
+                id="sort-by"
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="text-xs font-bold rounded-lg border border-gray-250 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-850 py-1 px-2 focus:outline-none dark:text-white cursor-pointer"
+              >
+                <option value="recentes">Mais recentes</option>
+                <option value="views-desc">Mais visualizados</option>
+                <option value="preco-asc">Menor preço</option>
+                <option value="preco-desc">Maior preço</option>
+                <option value="area-desc">Maior área</option>
+              </select>
+            </div>
           </div>
 
           {isLoading ? (
@@ -325,7 +362,7 @@ const Imoveis: React.FC = () => {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {filteredProperties.map((prop) => (
+              {sortedProperties.map((prop) => (
                 <div
                   key={prop.id}
                   className="group bg-white dark:bg-zinc-900 border border-gray-150 dark:border-zinc-800/80 rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 flex flex-col justify-between text-left h-full"
