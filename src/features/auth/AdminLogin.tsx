@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
-import { TreePine, Lock, Mail, Eye, EyeOff } from 'lucide-react';
+import { Lock, Mail, Eye, EyeOff } from 'lucide-react';
 
 const AdminLogin: React.FC = () => {
   const { user, login, error, clearError, isAdmin } = useAuth();
@@ -58,12 +58,16 @@ const AdminLogin: React.FC = () => {
       <div className="relative z-10 w-full max-w-md bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md p-8 rounded-3xl border border-white/20 shadow-2xl space-y-6 text-left">
         {/* Logo and title */}
         <div className="text-center space-y-2">
-          <div className="h-12 w-12 rounded-xl bg-primary-dark text-brand-beige mx-auto flex items-center justify-center shadow-lg">
-            <TreePine className="h-7 w-7 text-primary-light" />
+          <div className="flex items-center justify-center">
+            <img 
+              src="/logo.png" 
+              alt="Ruraliza" 
+              className="h-8 sm:h-12 w-auto object-contain"
+            />
           </div>
           <div className="space-y-1">
             <h2 className="font-poppins text-lg font-bold text-primary-dark dark:text-white leading-tight">
-              Ruraliza Negócios Rurais
+              Ruraliza Negócios
             </h2>
             <span className="font-sans text-[10px] tracking-[0.2em] font-semibold text-primary-medium uppercase block">
               Controle Administrativo
@@ -74,7 +78,7 @@ const AdminLogin: React.FC = () => {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-xs font-semibold text-gray-600 dark:text-zinc-400 mb-1">
-              E-mail Administrativo
+              E-mail
             </label>
             <div className="flex items-center rounded-xl border border-gray-200 dark:border-zinc-800 bg-black/[0.03] dark:bg-white/[0.03] backdrop-blur-[2px] px-3.5 py-2.5 focus-within:border-primary-medium transition-colors">
               <Mail className="h-4 w-4 text-gray-400 shrink-0 mr-2" />

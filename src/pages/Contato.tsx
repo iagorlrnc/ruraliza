@@ -1,13 +1,20 @@
 import React, { useState } from 'react';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { api } from '../services/api';
 import { useToast } from '../contexts/ToastContext';
 import { useSEO } from '../hooks/useSEO';
 import { Phone, Mail, MapPin, MessageSquare, Clock } from 'lucide-react';
+import MapView from '../components/MapView';
 
 const Contato: React.FC = () => {
   useSEO('Contato', 'Fale com os consultores da Ruraliza Negócios. Tire dúvidas, solicite visitas ou envie propostas.');
   const { showToast } = useToast();
+  
+  const { data: config } = useQuery({
+    queryKey: ['settings'],
+    queryFn: api.getConfiguracoes
+  });
+
   const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
   const [telefone, setTelefone] = useState('');
@@ -53,6 +60,7 @@ const Contato: React.FC = () => {
             src="https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=1200&q=80"
             alt="Contato Ruraliza"
             className="w-full h-full object-cover opacity-20 object-center"
+            data-no-protect
           />
           <div className="absolute inset-0 bg-gradient-to-t from-primary-dark to-primary-dark/80"></div>
         </div>
@@ -73,8 +81,10 @@ const Contato: React.FC = () => {
             </div>
             <div className="space-y-1">
               <h4 className="font-poppins text-xs font-bold text-gray-800 dark:text-white uppercase tracking-wider">Telefone & WhatsApp</h4>
-              <p className="text-xs text-gray-500 dark:text-zinc-400 font-sans">(18) 3222-1234</p>
-              <p className="text-xs text-primary-medium dark:text-primary-light font-bold font-sans">(18) 99888-7766</p>
+              <p className="text-xs text-gray-500 dark:text-zinc-400 font-sans">{config?.telefone || '(18) 3222-1234'}</p>
+              {config?.telefone_secundario && (
+                <p className="text-xs text-primary-medium dark:text-primary-light font-bold font-sans">{config.telefone_secundario}</p>
+              )}
             </div>
           </div>
 
@@ -85,7 +95,7 @@ const Contato: React.FC = () => {
             </div>
             <div className="space-y-1">
               <h4 className="font-poppins text-xs font-bold text-gray-800 dark:text-white uppercase tracking-wider">E-mail Corporativo</h4>
-              <p className="text-xs text-gray-500 dark:text-zinc-400 font-sans break-all">contato@ruralizanegocios.com.br</p>
+              <p className="text-xs text-gray-500 dark:text-zinc-400 font-sans break-all">{config?.email || 'contato@ruralizanegocios.com.br'}</p>
             </div>
           </div>
 
@@ -97,7 +107,7 @@ const Contato: React.FC = () => {
             <div className="space-y-1">
               <h4 className="font-poppins text-xs font-bold text-gray-800 dark:text-white uppercase tracking-wider">Nosso Escritório</h4>
               <p className="text-xs text-gray-500 dark:text-zinc-400 leading-snug">
-                Av. Coronel José Soares Marcondes, 1500 - Centro, Presidente Prudente - SP
+                {config?.endereco || 'Av. Coronel José Soares Marcondes, 1500 - Centro, Presidente Prudente - SP'}
               </p>
             </div>
           </div>
@@ -216,18 +226,11 @@ const Contato: React.FC = () => {
       <section className="mx-auto max-w-5xl px-4 space-y-4">
         <h3 className="font-poppins text-sm font-bold text-gray-800 dark:text-white">Localização do Escritório</h3>
         <div className="h-80 rounded-3xl bg-gray-100 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 overflow-hidden relative flex items-center justify-center">
-          <div className="absolute inset-0 bg-emerald-50 dark:bg-emerald-950/20 opacity-30 flex flex-wrap gap-1 p-2">
-            {[...Array(120)].map((_, i) => (
-              <div key={i} className="h-4 w-12 rounded-sm bg-gray-200 dark:bg-zinc-800 opacity-20"></div>
-            ))}
-          </div>
-          <div className="relative z-10 text-center p-6 space-y-2 bg-white/95 dark:bg-zinc-900/95 border border-gray-200/50 dark:border-zinc-800 rounded-2xl shadow-xl max-w-sm">
-            <MapPin className="h-6 w-6 text-primary-medium mx-auto animate-bounce" />
-            <h4 className="font-poppins text-xs font-bold text-gray-800 dark:text-white">Ruraliza Negócios</h4>
-            <p className="text-[10px] text-gray-500 leading-snug">
-              Av. Coronel José Soares Marcondes, 1500 - Centro, Presidente Prudente - SP. Estacionamento conveniado no local.
-            </p>
-          </div>
+          <MapView 
+            latitude={config?.latitude} 
+            longitude={config?.longitude} 
+            popupText="Escritório Ruraliza Negócios"
+          />
         </div>
       </section>
     </div>

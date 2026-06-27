@@ -4,8 +4,80 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../services/api';
 import { useToast } from '../../contexts/ToastContext';
 import { Imovel, ImagemImovel, TipoImovel, ModalidadeImovel, StatusImovel } from '../../types';
-import { ArrowLeft, Save, Trash2, Plus, Image as ImageIcon, ArrowUp, ArrowDown } from 'lucide-react';
+import { 
+  ArrowLeft, Save, Trash2, Image as ImageIcon, ArrowUp, ArrowDown, Plus, X,
+  Home as HomeIcon, Zap, Droplets, Fence, Trees, Sprout, ShieldCheck, Lock,
+  Tractor, Fish, Sun, Waves, Warehouse, Leaf
+} from 'lucide-react';
 import MapPicker from '../../components/MapPicker';
+
+const getPrefix = (tipo: TipoImovel): string => {
+  switch (tipo) {
+    case 'Fazenda': return 'FAZ';
+    case 'Chácara': return 'CHA';
+    case 'Sítio': return 'SIT';
+    case 'Rancho': return 'RAN';
+    case 'Terreno Rural': return 'TER';
+    case 'Área Agrícola': return 'AGR';
+    default: return 'IMO';
+  }
+};
+
+const parseCaracteristicas = (descricao: string): string[] => {
+  if (!descricao) return [];
+  
+  const marker1 = '--- Caraterísticas de Infraestrutura ---';
+  const marker2 = '--- Características de Infraestrutura ---';
+  
+  let idx = descricao.indexOf(marker1);
+  let markerLength = marker1.length;
+  if (idx === -1) {
+    idx = descricao.indexOf(marker2);
+    markerLength = marker2.length;
+  }
+  
+  if (idx !== -1) {
+    const block = descricao.substring(idx + markerLength).trim();
+    let cleanBlock = block;
+    if (block.startsWith('(Tags para indexação de busca:')) {
+      cleanBlock = block.replace('(Tags para indexação de busca:', '').replace(')', '').trim();
+    }
+    if (cleanBlock) {
+      return cleanBlock.split(',').map(s => s.trim()).filter(Boolean);
+    }
+  }
+  
+  // Fallback: parse from description text using the legacy rules to preserve compatibility
+  const legacyTags: string[] = [];
+  const descLower = descricao.toLowerCase();
+  if (descLower.includes('sede') || descLower.includes('casa')) legacyTags.push('Casa Sede|home');
+  if (descLower.includes('energia') || descLower.includes('luz') || descLower.includes('trifásica')) legacyTags.push('Energia Elétrica|zap');
+  if (descLower.includes('poço') || descLower.includes('artesiano') || descLower.includes('água')) legacyTags.push('Poço Artesiano|droplets');
+  if (descLower.includes('curral') || descLower.includes('manejo') || descLower.includes('confinamento')) legacyTags.push('Curral / Manejo|fence');
+  if (descLower.includes('pasto') || descLower.includes('pastagem') || descLower.includes('pecuária')) legacyTags.push('Pastagem Formada|trees');
+  if (descLower.includes('agrícola') || descLower.includes('agricultura') || descLower.includes('plantio') || descLower.includes('grãos') || descLower.includes('soja')) legacyTags.push('Área Agricultável|sprout');
+  if (descLower.includes('reserva') || descLower.includes('car') || descLower.includes('preservada') || descLower.includes('floresta')) legacyTags.push('Reserva Legal|shield');
+  if (descLower.includes('regularizada') || descLower.includes('geo') || descLower.includes('documentação')) legacyTags.push('Regularizado|lock');
+  
+  return legacyTags;
+};
+
+const AVAILABLE_ICONS = [
+  { key: 'home', label: 'Casa / Sede', Icon: HomeIcon },
+  { key: 'zap', label: 'Energia / Luz', Icon: Zap },
+  { key: 'droplets', label: 'Água / Poço', Icon: Droplets },
+  { key: 'fence', label: 'Cerca / Curral', Icon: Fence },
+  { key: 'trees', label: 'Árvores / Reserva', Icon: Trees },
+  { key: 'sprout', label: 'Lavoura / Plantio', Icon: Sprout },
+  { key: 'shield', label: 'Segurança / Regularizado', Icon: ShieldCheck },
+  { key: 'lock', label: 'Acesso Restrito', Icon: Lock },
+  { key: 'tractor', label: 'Trator / Galpão', Icon: Tractor },
+  { key: 'fish', label: 'Açude / Peixe', Icon: Fish },
+  { key: 'sun', label: 'Energia Solar', Icon: Sun },
+  { key: 'waves', label: 'Piscina / Rio', Icon: Waves },
+  { key: 'warehouse', label: 'Galpão / Silo', Icon: Warehouse },
+  { key: 'leaf', label: 'Mata / Área Verde', Icon: Leaf },
+];
 
 const PropertyForm: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -31,7 +103,29 @@ const PropertyForm: React.FC = () => {
 
   // Images state
   const [imagens, setImagens] = useState<ImagemImovel[]>([]);
-  const [newImageUrl, setNewImageUrl] = useState('');
+  const [uploading, setUploading] = useState(false);
+
+  // Infrastructure tag states
+  const [caracteristicas, setCaracteristicas] = useState<string[]>([]);
+  const [novaCaracteristica, setNovaCaracteristica] = useState('');
+  const [selectedIcon, setSelectedIcon] = useState('home');
+  const [showIconPicker, setShowIconPicker] = useState(false);
+
+  const handleAddCaracteristica = () => {
+    const trimmed = novaCaracteristica.trim();
+    if (!trimmed) return;
+    const normalizedName = trimmed.toLowerCase();
+    if (caracteristicas.some(c => c.split('|')[0].toLowerCase() === normalizedName)) {
+      showToast('Esta característica já foi adicionada.', 'warning');
+      return;
+    }
+    setCaracteristicas([...caracteristicas, `${trimmed}|${selectedIcon}`]);
+    setNovaCaracteristica('');
+  };
+
+  const handleRemoveCaracteristica = (indexToRemove: number) => {
+    setCaracteristicas(caracteristicas.filter((_, idx) => idx !== indexToRemove));
+  };
 
   // Fetch existing property for editing
   const { data: existingProperty, isLoading } = useQuery({
@@ -40,12 +134,40 @@ const PropertyForm: React.FC = () => {
     enabled: !isNew && !!id
   });
 
+  // Fetch all properties to compute unique sequential code
+  const { data: properties = [] } = useQuery({
+    queryKey: ['admin-properties-list'],
+    queryFn: api.getProperties,
+    enabled: isNew
+  });
+
+  // Fetch office configurations for setting default coordinates
+  const { data: config } = useQuery({
+    queryKey: ['settings'],
+    queryFn: api.getConfiguracoes
+  });
+
   // Populate form with existing data
   useEffect(() => {
     if (existingProperty && !isNew) {
       setTitulo(existingProperty.titulo);
       setCodigo(existingProperty.codigo);
-      setDescricao(existingProperty.descricao);
+
+      // Strip tags block from description for cleaner editing
+      let descClean = existingProperty.descricao;
+      const markers = [
+        '\n\n--- Caraterísticas de Infraestrutura ---',
+        '\n\n--- Características de Infraestrutura ---'
+      ];
+      for (const marker of markers) {
+        const splitIndex = descClean.indexOf(marker);
+        if (splitIndex !== -1) {
+          descClean = descClean.substring(0, splitIndex);
+          break;
+        }
+      }
+      setDescricao(descClean);
+
       setTipo(existingProperty.tipo);
       setModalidade(existingProperty.modalidade);
       setValor(existingProperty.valor);
@@ -57,8 +179,42 @@ const PropertyForm: React.FC = () => {
       setDestaque(existingProperty.destaque);
       setStatus(existingProperty.status);
       setImagens(existingProperty.imagens || []);
+
+      // Parse features from description
+      const parsedTags = parseCaracteristicas(existingProperty.descricao);
+      setCaracteristicas(parsedTags);
     }
   }, [existingProperty, isNew]);
+
+  // Set default coordinates from office location when creating a new property
+  useEffect(() => {
+    if (isNew && config && latitude === 0 && longitude === 0) {
+      if (config.latitude && config.longitude) {
+        setLatitude(config.latitude);
+        setLongitude(config.longitude);
+      }
+    }
+  }, [config, isNew, latitude, longitude]);
+
+  // Automatically generate unique sequential code for new properties based on type
+  useEffect(() => {
+    if (isNew) {
+      const prefix = getPrefix(tipo);
+      
+      // Filter properties that have the same type, and extract their numeric suffix
+      const matchingCodes = properties
+        .filter(p => p.tipo === tipo && p.codigo && p.codigo.startsWith(prefix))
+        .map(p => {
+          const numStr = p.codigo.substring(prefix.length);
+          const num = parseInt(numStr, 10);
+          return isNaN(num) ? 0 : num;
+        });
+
+      const nextNum = matchingCodes.length > 0 ? Math.max(...matchingCodes) + 1 : 1;
+      const formattedNum = String(nextNum).padStart(4, '0');
+      setCodigo(`${prefix}${formattedNum}`);
+    }
+  }, [tipo, properties, isNew]);
 
   // Mutation for saving
   const saveMutation = useMutation({
@@ -81,11 +237,16 @@ const PropertyForm: React.FC = () => {
       return;
     }
 
+    let finalDesc = descricao;
+    if (caracteristicas.length > 0) {
+      finalDesc += `\n\n--- Características de Infraestrutura ---\n${caracteristicas.join(', ')}`;
+    }
+
     const payload: Partial<Imovel> & { titulo: string } = {
       id,
       codigo: codigo || undefined,
       titulo,
-      descricao,
+      descricao: finalDesc,
       tipo,
       modalidade,
       valor: Number(valor),
@@ -106,25 +267,41 @@ const PropertyForm: React.FC = () => {
   };
 
   // Image Management Handlers
-  const handleAddImage = (e: React.MouseEvent) => {
-    e.preventDefault();
-    if (!newImageUrl) return;
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
 
-    if (!newImageUrl.startsWith('http://') && !newImageUrl.startsWith('https://')) {
-      showToast('Insira uma URL de imagem válida (iniciando com http/https).', 'error');
-      return;
+    setUploading(true);
+    try {
+      const uploadedUrls: string[] = [];
+
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        
+        // Show a temporary info toast
+        showToast(`Enviando imagem ${file.name}...`, 'info');
+        
+        const publicUrl = await api.uploadFile(file, 'imoveis');
+        uploadedUrls.push(publicUrl);
+      }
+
+      const newImgs: ImagemImovel[] = uploadedUrls.map((url, idx) => ({
+        id: 'new-img-' + Math.random().toString(36).substr(2, 9),
+        imovel_id: id || '',
+        url,
+        ordem: imagens.length + idx
+      }));
+
+      setImagens((prev) => [...prev, ...newImgs]);
+      showToast('Imagem(ns) enviada(s) com sucesso!', 'success');
+    } catch (err: any) {
+      console.error(err);
+      showToast(err.message || 'Erro ao fazer upload da imagem.', 'error');
+    } finally {
+      setUploading(false);
+      // Clear file input value
+      e.target.value = '';
     }
-
-    const newImg: ImagemImovel = {
-      id: 'new-img-' + Math.random().toString(36).substr(2, 9),
-      imovel_id: id || '',
-      url: newImageUrl,
-      ordem: imagens.length
-    };
-
-    setImagens((prev) => [...prev, newImg]);
-    setNewImageUrl('');
-    showToast('Imagem adicionada à lista.', 'success');
   };
 
   const handleRemoveImage = (imgId: string) => {
@@ -200,10 +377,10 @@ const PropertyForm: React.FC = () => {
                 </label>
                 <input
                   type="text"
+                  disabled
                   value={codigo}
-                  onChange={(e) => setCodigo(e.target.value)}
-                  placeholder="Ex: FL0001"
-                  className="w-full text-xs rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-850 py-2.5 px-3 focus:outline-none focus:border-primary-medium dark:text-white"
+                  placeholder="Gerado automaticamente..."
+                  className="w-full text-xs rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-100 dark:bg-zinc-800 text-gray-500 dark:text-zinc-400 py-2.5 px-3 focus:outline-none cursor-not-allowed"
                 />
               </div>
             </div>
@@ -285,6 +462,120 @@ const PropertyForm: React.FC = () => {
                 />
               </div>
             </div>
+          </div>
+
+          {/* Characteristics & Infrastructure Checklist (Placed BEFORE Location) */}
+          <div className="bg-white dark:bg-zinc-900 border border-gray-150 dark:border-zinc-800 p-6 rounded-3xl shadow-sm space-y-4">
+            <h3 className="font-poppins text-sm font-bold text-gray-800 dark:text-white">Características & Infraestrutura</h3>
+            
+            <div className="flex gap-2 items-center relative">
+              {/* Icon Selector Button & Dropdown */}
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setShowIconPicker(!showIconPicker)}
+                  className="bg-transparent hover:bg-gray-200/50 dark:hover:bg-zinc-800 text-gray-750 dark:text-zinc-300 border border-gray-200 dark:border-zinc-800 p-2.5 rounded-xl transition-colors flex items-center justify-center cursor-pointer min-w-[42px] h-[38px]"
+                  title="Selecionar ícone"
+                >
+                  {(() => {
+                    const matched = AVAILABLE_ICONS.find(i => i.key === selectedIcon);
+                    if (matched) {
+                      const IconComp = matched.Icon;
+                      return <IconComp className="h-4 w-4 text-primary-medium" />;
+                    }
+                    return <ShieldCheck className="h-4 w-4 text-primary-medium" />;
+                  })()}
+                </button>
+
+                {showIconPicker && (
+                  <>
+                    <div 
+                      className="fixed inset-0 z-40" 
+                      onClick={() => setShowIconPicker(false)} 
+                    />
+                    <div className="absolute left-0 mt-2 w-64 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-2xl shadow-xl p-3 z-50 grid grid-cols-5 gap-2 animate-in fade-in slide-in-from-top-1 duration-155">
+                      {AVAILABLE_ICONS.map((ico) => {
+                        const IconComp = ico.Icon;
+                        return (
+                          <button
+                            key={ico.key}
+                            type="button"
+                            onClick={() => {
+                              setSelectedIcon(ico.key);
+                              setShowIconPicker(false);
+                            }}
+                            className={`p-2 rounded-xl transition-all flex flex-col items-center justify-center border hover:scale-105 ${
+                              selectedIcon === ico.key
+                                ? 'bg-primary-medium/10 text-primary-medium border-primary-medium/30'
+                                : 'bg-transparent text-gray-600 dark:text-zinc-400 border-transparent hover:bg-gray-200/50 dark:hover:bg-zinc-800'
+                            }`}
+                            title={ico.label}
+                          >
+                            <IconComp className="h-4 w-4 shrink-0" />
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {/* Text Input */}
+              <input
+                type="text"
+                value={novaCaracteristica}
+                onChange={(e) => setNovaCaracteristica(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleAddCaracteristica();
+                  }
+                }}
+                placeholder="Adicionar característica (ex: Casa Sede)"
+                className="flex-1 text-xs rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-850 py-2.5 px-3 focus:outline-none focus:border-primary-medium dark:text-white h-[38px]"
+              />
+
+              {/* Add Button */}
+              <button
+                type="button"
+                onClick={handleAddCaracteristica}
+                className="bg-primary-medium hover:bg-primary-dark text-white font-bold text-xs px-4 py-2.5 rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer h-[38px] shrink-0"
+              >
+                <Plus className="h-4 w-4" />
+                Adicionar
+              </button>
+            </div>
+
+            {caracteristicas.length === 0 ? (
+              <p className="text-xs text-gray-400 italic">Nenhuma característica adicionada ainda.</p>
+            ) : (
+              <div className="flex flex-wrap gap-2 pt-1">
+                {caracteristicas.map((char, index) => {
+                  const parts = char.split('|');
+                  const name = parts[0];
+                  const iconKey = parts[1] || 'home';
+                  const matched = AVAILABLE_ICONS.find(i => i.key === iconKey) || { Icon: ShieldCheck };
+                  const IconComp = matched.Icon;
+
+                  return (
+                    <span
+                      key={index}
+                      className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-xl border bg-gray-50 dark:bg-zinc-800 text-gray-750 dark:text-zinc-250 border-gray-200/60 dark:border-zinc-700/60 shadow-sm"
+                    >
+                      <IconComp className="h-3.5 w-3.5 text-primary-medium" />
+                      {name}
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveCaracteristica(index)}
+                        className="text-gray-400 hover:text-red-500 rounded-full transition-colors p-0.5"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </span>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           {/* Location & Maps Fields */}
@@ -385,26 +676,27 @@ const PropertyForm: React.FC = () => {
           <div className="bg-white dark:bg-zinc-900 border border-gray-150 dark:border-zinc-800 p-6 rounded-3xl shadow-sm space-y-4">
             <h3 className="font-poppins text-sm font-bold text-gray-800 dark:text-white">Gerenciar Imagens</h3>
 
-            {/* URL Input */}
+            {/* Upload Area */}
             <div className="space-y-2">
               <label className="block text-xs font-semibold text-gray-600 dark:text-zinc-400">
-                Adicionar URL da Imagem
+                Adicionar Imagens do Imóvel
               </label>
-              <div className="flex gap-2">
+              <div className="flex flex-col items-center justify-center border-2 border-dashed border-zinc-700/30 rounded-2xl p-6 bg-zinc-800 hover:bg-zinc-950 text-white dark:bg-zinc-850 dark:border-zinc-700 transition-colors relative cursor-pointer group">
                 <input
-                  type="text"
-                  placeholder="https://images.unsplash.com/..."
-                  value={newImageUrl}
-                  onChange={(e) => setNewImageUrl(e.target.value)}
-                  className="flex-1 text-xs rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-850 py-2 px-3 focus:outline-none focus:border-primary-medium dark:text-white"
+                  type="file"
+                  multiple
+                  accept="image/*"
+                  disabled={uploading}
+                  onChange={handleImageUpload}
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
                 />
-                <button
-                  type="button"
-                  onClick={handleAddImage}
-                  className="bg-primary-dark hover:bg-primary-medium text-white px-3 py-2 rounded-xl text-xs font-bold flex items-center justify-center shrink-0 cursor-pointer"
-                >
-                  <Plus className="h-4.5 w-4.5" />
-                </button>
+                <ImageIcon className="h-8 w-8 text-zinc-400 group-hover:text-primary-light transition-colors mb-2" />
+                <span className="text-xs font-semibold text-zinc-200 dark:text-zinc-300">
+                  {uploading ? 'Enviando imagens...' : 'Clique para selecionar ou arraste imagens'}
+                </span>
+                <span className="text-[10px] text-zinc-400 dark:text-zinc-500 mt-1 text-center font-sans">
+                  Suporta PNG, JPG, JPEG e WEBP (múltiplas imagens)
+                </span>
               </div>
             </div>
 

@@ -8,7 +8,9 @@ import {
   Depoimento, 
   DashboardMetrics, 
   StatusMensagem, 
-  StatusVisita 
+  StatusVisita,
+  Configuracoes,
+  Vendedor
 } from '../types';
 
 // Detect if Supabase is fully configured
@@ -33,7 +35,7 @@ export const api = {
   // --- PROPERTIES (IMOVEIS) ---
   getProperties: async (): Promise<Imovel[]> => {
     if (!isSupabaseConfigured()) {
-      return mockDb.getProperties();
+      return [];
     }
 
     const { data, error } = await supabase
@@ -75,15 +77,10 @@ export const api = {
 
   getPropertyById: async (id: string): Promise<Imovel | undefined> => {
     if (!isSupabaseConfigured()) {
-      const prop = mockDb.getPropertyById(id);
-      if (prop) {
-        mockDb.incrementView(id);
-      }
-      return prop;
+      return undefined;
     }
 
-    // Increment view count in supabase or locally
-    // In database, we could do this via RPC or let local tracking handle it. We will track views locally for simplicity.
+    // Increment view count locally for simplicity
     mockDb.incrementView(id);
 
     const { data, error } = await supabase
@@ -475,7 +472,7 @@ export const api = {
   // --- TESTIMONIALS ---
   getTestimonials: async (): Promise<Depoimento[]> => {
     if (!isSupabaseConfigured()) {
-      return mockDb.getTestimonials();
+      return [];
     }
 
     const { data, error } = await supabase
@@ -584,5 +581,146 @@ export const api = {
       console.warn('Failed to fetch metrics from Supabase, using mockDb fallback:', e);
       return mockDb.getMetrics();
     }
+  },
+
+  // --- CONFIGURATIONS ---
+  getConfiguracoes: async (): Promise<Configuracoes> => {
+    if (!isSupabaseConfigured()) {
+      return {} as Configuracoes;
+    }
+    const { data, error } = await supabase
+      .from('tabela_configuracoes')
+      .select('*')
+      .maybeSingle();
+
+    if (error) {
+      console.error('Error fetching configurations from Supabase:', error);
+      throw error;
+    }
+    if (!data) {
+      return {} as Configuracoes;
+    }
+    return {
+      ...data,
+      latitude: data.latitude ? Number(data.latitude) : undefined,
+      longitude: data.longitude ? Number(data.longitude) : undefined
+    };
+  },
+
+  saveConfiguracoes: async (config: Partial<Configuracoes>): Promise<Configuracoes> => {
+    if (!isSupabaseConfigured()) {
+      return mockDb.saveConfiguracoes(config);
+    }
+    const { data, error } = await supabase
+      .from('tabela_configuracoes')
+      .update({
+        ...config,
+        latitude: config.latitude ? Number(config.latitude) : null,
+        longitude: config.longitude ? Number(config.longitude) : null,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', config.id || 'c0b67540-3b00-4b08-8e6f-fb9f8ee18299')
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error saving configurations to Supabase:', error);
+      throw error;
+    }
+    return {
+      ...data,
+      latitude: data.latitude ? Number(data.latitude) : undefined,
+      longitude: data.longitude ? Number(data.longitude) : undefined
+    };
+  },
+
+  // --- SELLERS ---
+  getVendedores: async (): Promise<Vendedor[]> => {
+    if (!isSupabaseConfigured()) {
+      return [];
+    }
+    const { data, error } = await supabase
+      .from('tabela_vendedores')
+      .select('*')
+      .order('created_at', { ascending: true });
+
+    if (error) {
+      console.error('Error fetching sellers from Supabase:', error);
+      throw error;
+    }
+    return data || [];
+  },
+
+  saveVendedor: async (vendedor: Partial<Vendedor> & { nome: string; role: string; especializacao: string }): Promise<Vendedor> => {
+    if (!isSupabaseConfigured()) {
+      return mockDb.saveVendedor(vendedor);
+    }
+    const payload = {
+      nome: vendedor.nome,
+      role: vendedor.role,
+      especializacao: vendedor.especializacao,
+      telefone: vendedor.telefone || null,
+      email: vendedor.email || null,
+      foto: vendedor.foto || null,
+      creci: vendedor.creci || null,
+      updated_at: new Date().toISOString()
+    };
+
+    if (vendedor.id) {
+      const { data, error } = await supabase
+        .from('tabela_vendedores')
+        .update(payload)
+        .eq('id', vendedor.id)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    } else {
+      const { data, error } = await supabase
+        .from('tabela_vendedores')
+        .insert([payload])
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    }
+  },
+
+  deleteVendedor: async (id: string): Promise<boolean> => {
+    if (!isSupabaseConfigured()) {
+      return mockDb.deleteVendedor(id);
+    }
+    const { error } = await supabase
+      .from('tabela_vendedores')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
+    return true;
+  },
+
+  uploadFile: async (file: File, bucket: string): Promise<string> => {
+    if (!isSupabaseConfigured()) {
+      return URL.createObjectURL(file);
+    }
+
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
+    const filePath = `${fileName}`;
+
+    const { error } = await supabase.storage
+      .from(bucket)
+      .upload(filePath, file);
+
+    if (error) {
+      console.error(`Error uploading to bucket ${bucket}:`, error);
+      throw error;
+    }
+
+    const { data: publicUrlData } = supabase.storage
+      .from(bucket)
+      .getPublicUrl(filePath);
+
+    return publicUrlData.publicUrl;
   }
 };

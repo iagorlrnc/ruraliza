@@ -21,8 +21,98 @@ import {
   Sprout, 
   ShieldCheck, 
   Lock,
-  MessageCircle
+  MessageCircle,
+  Tractor, Fish, Sun, Waves, Warehouse, Leaf
 } from 'lucide-react';
+
+
+const parseCaracteristicas = (descricao: string): string[] => {
+  if (!descricao) return [];
+  
+  const marker1 = '--- Caraterísticas de Infraestrutura ---';
+  const marker2 = '--- Características de Infraestrutura ---';
+  
+  let idx = descricao.indexOf(marker1);
+  let markerLength = marker1.length;
+  if (idx === -1) {
+    idx = descricao.indexOf(marker2);
+    markerLength = marker2.length;
+  }
+  
+  if (idx !== -1) {
+    const block = descricao.substring(idx + markerLength).trim();
+    let cleanBlock = block;
+    if (block.startsWith('(Tags para indexação de busca:')) {
+      cleanBlock = block.replace('(Tags para indexação de busca:', '').replace(')', '').trim();
+    }
+    if (cleanBlock) {
+      return cleanBlock.split(',').map(s => s.trim()).filter(Boolean);
+    }
+  }
+  
+  // Fallback: parse from description text using the legacy rules to preserve compatibility
+  const legacyTags: string[] = [];
+  const descLower = descricao.toLowerCase();
+  if (descLower.includes('sede') || descLower.includes('casa')) legacyTags.push('Casa Sede|home');
+  if (descLower.includes('energia') || descLower.includes('luz') || descLower.includes('trifásica')) legacyTags.push('Energia Elétrica|zap');
+  if (descLower.includes('poço') || descLower.includes('artesiano') || descLower.includes('água')) legacyTags.push('Poço Artesiano|droplets');
+  if (descLower.includes('curral') || descLower.includes('manejo') || descLower.includes('confinamento')) legacyTags.push('Curral / Manejo|fence');
+  if (descLower.includes('pasto') || descLower.includes('pastagem') || descLower.includes('pecuária')) legacyTags.push('Pastagem Formada|trees');
+  if (descLower.includes('agrícola') || descLower.includes('agricultura') || descLower.includes('plantio') || descLower.includes('grãos') || descLower.includes('soja')) legacyTags.push('Área Agricultável|sprout');
+  if (descLower.includes('reserva') || descLower.includes('car') || descLower.includes('preservada') || descLower.includes('floresta')) legacyTags.push('Reserva Legal|shield');
+  if (descLower.includes('regularizada') || descLower.includes('geo') || descLower.includes('documentação')) legacyTags.push('Regularizado|lock');
+  
+  return legacyTags;
+};
+
+const getIconForFeature = (name: string, iconKey?: string) => {
+  if (iconKey) {
+    const key = iconKey.toLowerCase();
+    if (key === 'home') return HomeIcon;
+    if (key === 'zap') return Zap;
+    if (key === 'droplets') return Droplets;
+    if (key === 'fence') return Fence;
+    if (key === 'trees') return Trees;
+    if (key === 'sprout') return Sprout;
+    if (key === 'shield') return ShieldCheck;
+    if (key === 'lock') return Lock;
+    if (key === 'tractor') return Tractor;
+    if (key === 'fish') return Fish;
+    if (key === 'sun') return Sun;
+    if (key === 'waves') return Waves;
+    if (key === 'warehouse') return Warehouse;
+    if (key === 'leaf') return Leaf;
+  }
+
+  // Fallback to name-based lookup
+  const lower = name.toLowerCase();
+  if (lower.includes('sede') || lower.includes('casa')) return HomeIcon;
+  if (lower.includes('energia') || lower.includes('luz') || lower.includes('elétrica') || lower.includes('eletrica')) return Zap;
+  if (lower.includes('poço') || lower.includes('poco') || lower.includes('artesiano') || lower.includes('água') || lower.includes('agua')) return Droplets;
+  if (lower.includes('curral') || lower.includes('manejo') || lower.includes('confinamento')) return Fence;
+  if (lower.includes('pasto') || lower.includes('pastagem') || lower.includes('pecuária') || lower.includes('pecuaria')) return Trees;
+  if (lower.includes('agrícola') || lower.includes('agricultura') || lower.includes('plantio') || lower.includes('grãos') || lower.includes('soja') || lower.includes('agricola') || lower.includes('graos')) return Sprout;
+  if (lower.includes('reserva') || lower.includes('car') || lower.includes('preservada') || lower.includes('floresta')) return ShieldCheck;
+  if (lower.includes('regularizado') || lower.includes('regularizada') || lower.includes('documento') || lower.includes('documentação') || lower.includes('documentacao') || lower.includes('geo')) return Lock;
+  return ShieldCheck; // default fallback icon
+};
+
+const cleanDescricao = (desc: string): string => {
+  if (!desc) return '';
+  const markers = [
+    '\n\n--- Caraterísticas de Infraestrutura ---',
+    '\n\n--- Características de Infraestrutura ---'
+  ];
+  let clean = desc;
+  for (const marker of markers) {
+    const splitIndex = clean.indexOf(marker);
+    if (splitIndex !== -1) {
+      clean = clean.substring(0, splitIndex);
+      break;
+    }
+  }
+  return clean;
+};
 
 const DetalheImovel: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -199,19 +289,15 @@ const DetalheImovel: React.FC = () => {
   }
 
   // Dynamic characteristics parsing based on description text
-  const descLower = property.descricao.toLowerCase();
-  const featuresList = [
-    { name: 'Casa Sede', has: descLower.includes('sede') || descLower.includes('casa'), icon: HomeIcon },
-    { name: 'Energia Elétrica', has: descLower.includes('energia') || descLower.includes('luz') || descLower.includes('trifásica'), icon: Zap },
-    { name: 'Poço Artesiano', has: descLower.includes('poço') || descLower.includes('artesiano') || descLower.includes('água'), icon: Droplets },
-    { name: 'Curral / Manejo', has: descLower.includes('curral') || descLower.includes('manejo') || descLower.includes('confinamento'), icon: Fence },
-    { name: 'Pastagem Formada', has: descLower.includes('pasto') || descLower.includes('pastagem') || descLower.includes('pecuária'), icon: Trees },
-    { name: 'Área Agricultável', has: descLower.includes('agrícola') || descLower.includes('agricultura') || descLower.includes('plantio') || descLower.includes('grãos') || descLower.includes('soja'), icon: Sprout },
-    { name: 'Reserva Legal', has: descLower.includes('reserva') || descLower.includes('car') || descLower.includes('preservada') || descLower.includes('floresta'), icon: ShieldCheck },
-    { name: 'Regularizado', has: descLower.includes('regularizada') || descLower.includes('geo') || descLower.includes('documentação'), icon: Lock }
-  ];
-
-  const activeFeatures = featuresList.filter(f => f.has);
+  const activeFeatures = parseCaracteristicas(property.descricao).map(raw => {
+    const parts = raw.split('|');
+    const name = parts[0];
+    const iconKey = parts[1] || '';
+    return {
+      name,
+      icon: getIconForFeature(name, iconKey)
+    };
+  });
 
   // Generate WhatsApp message url
   const waMessage = encodeURIComponent(`Olá, tenho interesse no imóvel ${property.codigo} - ${property.titulo}. Gostaria de mais informações.`);
@@ -324,11 +410,9 @@ const DetalheImovel: React.FC = () => {
                   return (
                     <div
                       key={feat.name}
-                      className="flex items-center gap-2.5 p-3 rounded-xl bg-white dark:bg-zinc-900 border border-gray-100 dark:border-zinc-800 shadow-sm"
+                      className="flex items-center gap-2.5 p-3 rounded-xl border border-gray-200/50 dark:border-zinc-800 shadow-sm"
                     >
-                      <div className="h-7 w-7 rounded-lg bg-primary-medium/10 text-primary-medium flex items-center justify-center shrink-0">
-                        <Icon className="h-4 w-4" />
-                      </div>
+                      <Icon className="h-4.5 w-4.5 text-primary-medium shrink-0" />
                       <span className="text-xs font-bold text-gray-700 dark:text-zinc-350">{feat.name}</span>
                     </div>
                   );
@@ -343,7 +427,7 @@ const DetalheImovel: React.FC = () => {
               Descrição do Imóvel
             </h3>
             <div className="bg-white dark:bg-zinc-900 border border-gray-150 dark:border-zinc-800 p-6 rounded-3xl shadow-sm text-xs text-gray-600 dark:text-zinc-350 leading-relaxed font-sans whitespace-pre-wrap">
-              {property.descricao}
+              {cleanDescricao(property.descricao)}
             </div>
           </div>
 

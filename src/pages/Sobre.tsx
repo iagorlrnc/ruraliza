@@ -1,31 +1,51 @@
 import React from 'react';
-import { Target, Eye, Heart, Users2, Landmark } from 'lucide-react';
+import { Target, Eye, Heart, Users2, Landmark, MapPin, Award, Briefcase, TrendingUp } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useSEO } from '../hooks/useSEO';
+import { useQuery } from '@tanstack/react-query';
+import { api } from '../services/api';
+
+const timelineEvents = [
+  {
+    year: '2009',
+    title: 'O Início da Jornada',
+    description: 'Trabalhando no setor de desapropriação na Ferrovia Norte Sul, o engenheiro agrônomo Juscelino Kubitschek percebe a grande migração de produtores rurais goianos e sulistas para investir no agronegócio tocantinense.',
+    icon: MapPin,
+  },
+  {
+    year: '2011',
+    title: 'Primeira Negociação',
+    description: 'Após se qualificar por meio do curso de Transações Imobiliárias, Juscelino efetiva sua primeira negociação de fazenda, marcando o começo de uma atuação cada vez mais profissional no mercado imobiliário rural.',
+    icon: Briefcase,
+  },
+  {
+    year: '2011–2019',
+    title: 'Qualificação & Experiência',
+    description: 'Período de intensa especialização com cursos nas áreas ambiental e fundiária, visando resguardar os investidores quanto à situação legal dos imóveis. A prática de mercado trouxe o aprimoramento em técnicas de negociação e relacionamento interpessoal.',
+    icon: Award,
+  },
+  {
+    year: '2019',
+    title: 'Fundação da Ruraliza Negócios',
+    description: 'Nasce a Ruraliza Negócios, com sede em Palmas, capital do Tocantins. Área de atuação abrangendo todo o estado do Tocantins e o sul do Pará, com foco em se tornar referência no setor imobiliário rural.',
+    icon: TrendingUp,
+  },
+];
 
 const Sobre: React.FC = () => {
-  useSEO('Sobre Nós', 'Saiba mais sobre a nossa história, valores e corpo técnico especializado em agronegócio.');
+  useSEO('Sobre Nós', 'Conheça a história da Ruraliza Negócios, referência em intermediação imobiliária rural no Tocantins e sul do Pará.');
 
-  const team = [
-    {
-      name: 'Renato Silva',
-      role: 'Diretor Executivo & Corretor Sênior',
-      desc: 'Mais de 15 anos de experiência em grandes transações de terras e expansão pecuária.',
-      image: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&w=300&q=80'
-    },
-    {
-      name: 'Dr. Arthur Mendes',
-      role: 'Consultor Jurídico Agrário',
-      desc: 'Especialista em georreferenciamento, regularização de posses e compliance ambiental.',
-      image: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=300&q=80'
-    },
-    {
-      name: 'Sofia Rezende',
-      role: 'Engenheira Agrônoma',
-      desc: 'Responsável pela análise técnica de solos, capacidade de pastagens e estudos hídricos.',
-      image: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=300&q=80'
-    }
-  ];
+  // Fetch sellers
+  const { data: team = [] } = useQuery({
+    queryKey: ['sellers'],
+    queryFn: api.getVendedores
+  });
+
+  // Fetch settings for dynamic CRECI
+  const { data: config } = useQuery({
+    queryKey: ['settings'],
+    queryFn: api.getConfiguracoes
+  });
 
   return (
     <div className="space-y-16 pb-20 text-left">
@@ -33,9 +53,10 @@ const Sobre: React.FC = () => {
       <section className="relative h-64 bg-primary-dark text-white flex items-center justify-center">
         <div className="absolute inset-0 overflow-hidden">
           <img
-            src="https://images.unsplash.com/photo-1500937386664-56d1dfef3854?auto=format&fit=crop&w=1200&q=80"
+            src="/hero.jpg"
             alt="História Ruraliza"
             className="w-full h-full object-cover opacity-20 object-center"
+            data-no-protect
           />
           <div className="absolute inset-0 bg-gradient-to-t from-primary-dark to-primary-dark/80"></div>
         </div>
@@ -50,21 +71,79 @@ const Sobre: React.FC = () => {
         <div className="space-y-4">
           <span className="text-[10px] font-bold text-primary-medium uppercase tracking-widest block">Nossa Origem</span>
           <h2 className="font-poppins text-xl sm:text-2xl font-bold text-primary-dark dark:text-white">
-            Uma história de ligação estreita com o homem do campo
+            Da experiência no campo à referência em negócios rurais
           </h2>
           <p className="text-xs text-gray-500 dark:text-zinc-400 leading-relaxed font-sans">
-            Fundada em Presidente Prudente - SP, a Ruraliza Negócios nasceu a partir da união de profissionais do mercado imobiliário com engenheiros agrônomos de campo. Percebemos que a intermediação de propriedades rurais exigia um nível de conhecimento técnico que as imobiliárias urbanas comuns não conseguiam suprir.
+            A história da Ruraliza Negócios começa em 2009, quando o engenheiro agrônomo e fundador da empresa, Juscelino Kubitschek, à época trabalhando no setor de desapropriação na Ferrovia Norte Sul, percebeu a grande migração de produtores rurais goianos e sulistas para investir no agronegócio tocantinense.
           </p>
           <p className="text-xs text-gray-500 dark:text-zinc-400 leading-relaxed font-sans">
-            Mais do que vender terras, oferecemos uma consultoria agrária integrada. Investigamos o teor de argila do solo, a pluviosidade histórica da região, o status de reserva legal e a regularidade de divisórias antes de oferecer qualquer fazenda. É essa responsabilidade que consolidou nossa marca como sinônimo de segurança e credibilidade no agronegócio.
+            A experiência de campo e em empresas do segmento imobiliário despertou seu interesse na área e, em 2011, após se qualificar por meio do curso de Transações Imobiliárias, efetivou sua primeira negociação de fazenda. A partir daí, sua atuação na área foi se profissionalizando, com cursos nas áreas ambiental e fundiária, a fim de resguardar os investidores da situação legal dos imóveis em oferta.
+          </p>
+          <p className="text-xs text-gray-500 dark:text-zinc-400 leading-relaxed font-sans">
+            Em 2019, sentiu a necessidade de empreender, resultando na fundação da Ruraliza Negócios, com sede na capital, Palmas. Sua área de atuação abrange todo o estado do Tocantins e sul do Pará, sendo o trabalho focado em se tornar referência no setor imobiliário rural a partir da qualidade de um atendimento técnico que preza pelo bom relacionamento e pela transparência com seus clientes.
           </p>
         </div>
         <div className="rounded-3xl overflow-hidden aspect-[4/3] border border-gray-200 dark:border-zinc-800 shadow-lg">
           <img
-            src="https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=800&q=80"
-            alt="Fazenda soja"
+            src="/hero.jpg"
+            alt="Fazenda Tocantins"
             className="w-full h-full object-cover"
+            data-no-protect
           />
+        </div>
+      </section>
+
+      {/* Timeline */}
+      <section className="mx-auto max-w-4xl px-4 space-y-8">
+        <div className="text-center max-w-md mx-auto space-y-2">
+          <span className="text-[10px] font-bold text-primary-medium uppercase tracking-widest block">Nossa Trajetória</span>
+          <h2 className="font-poppins text-xl sm:text-2xl font-bold text-primary-dark dark:text-white">
+            Linha do Tempo
+          </h2>
+        </div>
+
+        <div className="relative">
+          {/* Vertical line */}
+          <div className="absolute left-6 md:left-1/2 top-0 bottom-0 w-px bg-primary-medium/20 dark:bg-zinc-700 -translate-x-1/2 hidden sm:block"></div>
+
+          <div className="space-y-10">
+            {timelineEvents.map((event, idx) => {
+              const Icon = event.icon;
+              const isLeft = idx % 2 === 0;
+
+              return (
+                <motion.div
+                  key={event.year}
+                  initial={{ opacity: 0, y: 30 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.5, delay: idx * 0.12 }}
+                  className={`relative flex flex-col sm:flex-row items-start sm:items-center gap-4 ${
+                    isLeft ? 'sm:flex-row' : 'sm:flex-row-reverse'
+                  }`}
+                >
+                  {/* Content Card */}
+                  <div className={`flex-1 ${isLeft ? 'sm:text-right' : 'sm:text-left'}`}>
+                    <div className="bg-white dark:bg-zinc-900 border border-gray-100 dark:border-zinc-800 rounded-2xl p-5 shadow-sm space-y-2 hover:shadow-md transition-shadow">
+                      <span className="text-primary-medium font-poppins font-bold text-sm">{event.year}</span>
+                      <h3 className="font-poppins font-bold text-sm text-gray-800 dark:text-white">{event.title}</h3>
+                      <p className="text-[11px] text-gray-500 dark:text-zinc-400 leading-relaxed font-sans">
+                        {event.description}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Center Icon */}
+                  <div className="hidden sm:flex h-12 w-12 rounded-full bg-primary-medium/10 border-2 border-primary-medium/30 items-center justify-center shrink-0 z-10">
+                    <Icon className="h-5 w-5 text-primary-medium" />
+                  </div>
+
+                  {/* Spacer for the other side */}
+                  <div className="flex-1 hidden sm:block"></div>
+                </motion.div>
+              );
+            })}
+          </div>
         </div>
       </section>
 
@@ -78,7 +157,7 @@ const Sobre: React.FC = () => {
             </div>
             <h3 className="font-poppins font-bold text-sm text-gray-800 dark:text-white">Missão</h3>
             <p className="text-xs text-gray-500 dark:text-zinc-400 leading-relaxed">
-              Viabilizar transações imobiliárias rurais seguras, pautadas em análises técnicas, gerando valor real para investidores e produtores rurais.
+              Viabilizar transações imobiliárias rurais seguras, pautadas em atendimento técnico qualificado, prezando pelo bom relacionamento e pela transparência com nossos clientes.
             </p>
           </div>
 
@@ -89,7 +168,7 @@ const Sobre: React.FC = () => {
             </div>
             <h3 className="font-poppins font-bold text-sm text-gray-800 dark:text-white">Visão</h3>
             <p className="text-xs text-gray-500 dark:text-zinc-400 leading-relaxed">
-              Ser a consultoria imobiliária rural mais admirada do interior brasileiro, reconhecida pelo rigor técnico e regularidade documental de sua carteira.
+              Ser referência no setor imobiliário rural no Tocantins e sul do Pará, reconhecida pela qualidade do atendimento técnico e pela segurança jurídica proporcionada aos investidores e produtores.
             </p>
           </div>
 
@@ -100,7 +179,7 @@ const Sobre: React.FC = () => {
             </div>
             <h3 className="font-poppins font-bold text-sm text-gray-800 dark:text-white">Valores</h3>
             <p className="text-xs text-gray-500 dark:text-zinc-400 leading-relaxed">
-              Ética inegociável, transparência jurídica completa, respeito à terra e sustentabilidade, e foco na segurança do patrimônio do cliente.
+              Transparência, ética, qualificação técnica contínua, bom relacionamento interpessoal e compromisso com a segurança legal dos imóveis ofertados.
             </p>
           </div>
         </div>
@@ -120,29 +199,35 @@ const Sobre: React.FC = () => {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {team.map((t, idx) => (
-            <motion.div
-              key={t.name}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5, delay: idx * 0.1 }}
-              className="bg-white dark:bg-zinc-900 border border-gray-100 dark:border-zinc-800 rounded-3xl p-6 shadow-sm space-y-4 hover:shadow-md transition-shadow text-center flex flex-col items-center"
-            >
-              <div className="h-28 w-28 rounded-full overflow-hidden border-2 border-primary-medium/20 shadow-inner">
-                <img src={t.image} alt={t.name} className="w-full h-full object-cover" />
-              </div>
-              <div className="space-y-1">
-                <h3 className="font-poppins font-bold text-sm text-gray-800 dark:text-white">{t.name}</h3>
-                <span className="text-[10px] text-primary-medium dark:text-primary-light font-bold block">{t.role}</span>
-              </div>
-              <p className="text-[11px] text-gray-500 dark:text-zinc-400 leading-relaxed font-sans">
-                {t.desc}
-              </p>
-            </motion.div>
-          ))}
-        </div>
+        {team.length === 0 ? (
+          <div className="text-center py-8 bg-white dark:bg-zinc-900 border border-gray-100 dark:border-zinc-800 rounded-3xl p-6 shadow-sm">
+            <p className="text-sm text-gray-500 dark:text-zinc-400 font-medium">Sem informações no momento.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {team.map((t, idx) => (
+              <motion.div
+                key={t.id}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5, delay: idx * 0.1 }}
+                className="bg-white dark:bg-zinc-900 border border-gray-100 dark:border-zinc-800 rounded-3xl p-6 shadow-sm space-y-4 hover:shadow-md transition-shadow text-center flex flex-col items-center"
+              >
+                <div className="h-28 w-28 rounded-full overflow-hidden border-2 border-primary-medium/20 shadow-inner">
+                  <img src={t.foto || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80'} alt={t.nome} className="w-full h-full object-cover" data-no-protect />
+                </div>
+                <div className="space-y-1">
+                  <h3 className="font-poppins font-bold text-sm text-gray-800 dark:text-white">{t.nome}</h3>
+                  <span className="text-[10px] text-primary-medium dark:text-primary-light font-bold block">{t.role}</span>
+                </div>
+                <p className="text-[11px] text-gray-500 dark:text-zinc-400 leading-relaxed font-sans">
+                  {t.especializacao}
+                </p>
+              </motion.div>
+            ))}
+          </div>
+        )}
       </section>
 
       {/* Credibility / Trust Stamp */}
@@ -154,12 +239,12 @@ const Sobre: React.FC = () => {
               <h3 className="font-poppins text-lg font-bold">Assessoria Imobiliária com Selo de Segurança</h3>
             </div>
             <p className="text-xs text-brand-beige-dark/75 leading-relaxed">
-              Trabalhamos em estreita parceria com os principais cartórios de registro de imóveis da região. Garantimos que sua transação ocorra sem embargos, garantias cruzadas ou surpresas tributárias.
+              Trabalhamos com rigorosa auditoria documental antes de anunciar qualquer propriedade. Garantimos que sua transação ocorra com total segurança jurídica e transparência.
             </p>
           </div>
           <div className="bg-primary-medium/25 border border-primary-medium/35 px-4 py-3 rounded-2xl shrink-0 text-center">
             <span className="block text-[10px] text-brand-beige-dark font-semibold uppercase tracking-wider">CRECI Jurídico</span>
-            <strong className="text-base text-white font-poppins block">Nº 35.421-J</strong>
+            <strong className="text-base text-white font-poppins block">Nº {config?.creci || '35.421-J'}</strong>
           </div>
         </div>
       </section>

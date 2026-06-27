@@ -33,6 +33,8 @@ import MessagesList from './features/messages/MessagesList';
 import UsersList from './features/users/UsersList';
 import UserDetails from './features/users/UserDetails';
 import TestimonialsList from './features/testimonials/TestimonialsList';
+import SellersList from './features/sellers/SellersList';
+import Settings from './features/settings/Settings';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -71,6 +73,8 @@ const App: React.FC = () => {
                     <Route path="/usuarios" element={<UsersList />} />
                     <Route path="/usuarios/:id" element={<UserDetails />} />
                     <Route path="/depoimentos" element={<TestimonialsList />} />
+                    <Route path="/vendedores" element={<SellersList />} />
+                    <Route path="/configuracoes" element={<Settings />} />
                   </Route>
 
                   {/* Fallback to Dashboard */}

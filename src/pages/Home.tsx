@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { api } from '../services/api';
 import { useToast } from '../contexts/ToastContext';
@@ -22,6 +22,7 @@ const Home: React.FC = () => {
   useSEO('Início', 'Encontre as melhores fazendas, sítios, ranchos e áreas agrícolas com documentação regularizada no portal Ruraliza Negócios.');
   const navigate = useNavigate();
   const { showToast } = useToast();
+  const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
   
   // Contact Form State
@@ -29,6 +30,11 @@ const Home: React.FC = () => {
   const [email, setEmail] = useState('');
   const [telefone, setTelefone] = useState('');
   const [mensagem, setMensagem] = useState('');
+
+  // Evaluation Form State
+  const [evalNome, setEvalNome] = useState('');
+  const [evalCargo, setEvalCargo] = useState('');
+  const [evalTexto, setEvalTexto] = useState('');
 
   // Fetch data
   const { data: properties = [], isLoading: loadingProperties } = useQuery({
@@ -40,6 +46,39 @@ const Home: React.FC = () => {
     queryKey: ['testimonials'],
     queryFn: api.getTestimonials
   });
+
+  const { data: config } = useQuery({
+    queryKey: ['settings'],
+    queryFn: api.getConfiguracoes
+  });
+
+  // Testimonial Submit Mutation
+  const testimonialMutation = useMutation({
+    mutationFn: api.saveTestimonial,
+    onSuccess: () => {
+      showToast('Obrigado! Sua avaliação foi registrada e enviada para o painel administrativo.', 'success');
+      setEvalNome('');
+      setEvalCargo('');
+      setEvalTexto('');
+      queryClient.invalidateQueries({ queryKey: ['testimonials'] });
+    },
+    onError: () => {
+      showToast('Ocorreu um erro ao enviar sua avaliação. Tente novamente.', 'error');
+    }
+  });
+
+  const handleEvalSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!evalNome || !evalCargo || !evalTexto) {
+      showToast('Por favor, preencha todos os campos obrigatórios da avaliação.', 'error');
+      return;
+    }
+    testimonialMutation.mutate({
+      nome: evalNome,
+      cargo: evalCargo,
+      texto: evalTexto
+    });
+  };
 
   // Filter featured properties
   const featuredProperties = properties
@@ -94,12 +133,13 @@ const Home: React.FC = () => {
   return (
     <div className="space-y-20 pb-20 overflow-x-hidden">
       {/* Hero Section */}
-      <section className="relative h-[85vh] flex items-center justify-center bg-gray-900 text-white">
+      <section className="relative h-screen flex items-center justify-center bg-gray-900 text-white">
         <div className="absolute inset-0 overflow-hidden">
           <img 
-            src="https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1920&q=80" 
+            src="/hero.jpg" 
             alt="Fazenda Ruraliza" 
             className="w-full h-full object-cover opacity-45 dark:opacity-30 object-center"
+            data-no-protect
           />
           <div className="absolute inset-0 bg-gradient-to-t from-gray-950 via-gray-900/60 to-transparent"></div>
         </div>
@@ -109,10 +149,18 @@ const Home: React.FC = () => {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
+            className="flex flex-col items-center gap-4"
           >
             <span className="inline-flex items-center gap-1.5 rounded-full bg-primary-medium/20 px-3.5 py-1 text-xs font-semibold tracking-wider text-primary-light uppercase border border-primary-medium/30 backdrop-blur-md">
-              <Trees className="h-3.5 w-3.5" />Investimentos Rurais
+              <Trees className="h-3.5 w-3.5" />Imóveis Rurais
             </span>
+            <img 
+              src="/logonome.png" 
+              alt="Ruraliza" 
+              className="h-16 sm:h-24 w-auto object-contain"
+              data-no-protect
+            />
+            
           </motion.div>
 
           <motion.h1
@@ -121,7 +169,7 @@ const Home: React.FC = () => {
             transition={{ duration: 0.7, delay: 0.1 }}
             className="font-poppins text-4xl sm:text-6xl font-bold tracking-tight text-white leading-tight"
           >
-            Conectamos você ao melhor do <span className="text-primary-light">mercado rural</span>
+            Investir no <span className="text-primary-light">campo</span><br/>é investir no <span className="text-primary-light">futuro.</span>
           </motion.h1>
 
           <motion.p
@@ -158,20 +206,6 @@ const Home: React.FC = () => {
               Pesquisar
             </button>
           </motion.form>
-
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.8, delay: 0.4 }}
-            className="pt-4"
-          >
-            <Link
-              to="/imoveis"
-              className="text-xs font-semibold uppercase tracking-wider text-brand-beige hover:text-primary-light transition-colors inline-flex items-center gap-1"
-            >
-              Ver Todas as Propriedades <ArrowRight className="h-3 w-3" />
-            </Link>
-          </motion.div>
         </div>
       </section>
 
@@ -199,6 +233,10 @@ const Home: React.FC = () => {
             {[1, 2, 3].map((i) => (
               <div key={i} className="bg-white dark:bg-zinc-900 border border-gray-100 dark:border-zinc-800 rounded-2xl overflow-hidden shadow-sm h-96 skeleton-shimmer"></div>
             ))}
+          </div>
+        ) : featuredProperties.length === 0 ? (
+          <div className="bg-white dark:bg-zinc-900 border border-gray-150 dark:border-zinc-800 p-8 rounded-3xl shadow-sm text-center">
+            <p className="text-sm text-gray-500 dark:text-zinc-400 font-medium">Sem informações no momento.</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -290,6 +328,7 @@ const Home: React.FC = () => {
                   src={cat.image}
                   alt={cat.name}
                   className="w-full h-full object-cover opacity-60 transition-transform duration-500 group-hover:scale-110"
+                  data-no-protect
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-gray-950 via-gray-950/20 to-transparent"></div>
                 <div className="absolute bottom-3 left-3 text-left">
@@ -366,13 +405,15 @@ const Home: React.FC = () => {
       </section>
 
       {/* Testimonials Section */}
-      {testimonials.length > 0 && (
-        <section className="bg-brand-beige-dark/25 dark:bg-zinc-900/20 py-16 transition-colors duration-300">
-          <div className="mx-auto max-w-4xl px-4 text-center space-y-8">
-            <h2 className="font-poppins text-2xl font-bold text-primary-dark dark:text-white">
-              O que dizem os nossos clientes
-            </h2>
+      <section className="bg-brand-beige-dark/25 dark:bg-zinc-900/20 py-16 transition-colors duration-300">
+        <div className="mx-auto max-w-4xl px-4 text-center space-y-8">
+          <h2 className="font-poppins text-2xl font-bold text-primary-dark dark:text-white">
+            O que dizem os nossos clientes
+          </h2>
 
+          {testimonials.length === 0 ? (
+            <p className="text-sm text-gray-500 dark:text-zinc-400 font-medium">Sem informações no momento.</p>
+          ) : (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {testimonials.slice(0, 3).map((dep) => (
                 <div 
@@ -393,9 +434,9 @@ const Home: React.FC = () => {
                 </div>
               ))}
             </div>
-          </div>
-        </section>
-      )}
+          )}
+        </div>
+      </section>
 
       {/* Contact Section / Form */}
       <section id="contato" className="mx-auto max-w-4xl px-4">
@@ -420,20 +461,23 @@ const Home: React.FC = () => {
             <div className="space-y-3 text-xs text-brand-beige-dark/95">
               <div>
                 <strong className="block text-white uppercase tracking-wider text-[10px]">Endereço</strong>
-                <span>Presidente Prudente - SP</span>
+                <span>{config?.endereco || 'Presidente Prudente - SP'}</span>
               </div>
               <div>
                 <strong className="block text-white uppercase tracking-wider text-[10px]">E-mail</strong>
-                <span>contato@ruralizanegocios.com.br</span>
+                <span>{config?.email || 'contato@ruralizanegocios.com.br'}</span>
               </div>
               <div>
                 <strong className="block text-white uppercase tracking-wider text-[10px]">Telefone / WhatsApp</strong>
-                <span>(18) 99888-7766</span>
+                <span>
+                  {config?.telefone || '(18) 3222-1234'}
+                  {config?.telefone_secundario ? ` / ${config.telefone_secundario}` : ''}
+                </span>
               </div>
             </div>
 
             <div className="text-[10px] text-brand-beige-dark/45 border-t border-brand-beige-dark/10 pt-3">
-              CRECI: 35.421-J
+              CRECI: {config?.creci || '35.421-J'}
             </div>
           </div>
 
@@ -507,6 +551,80 @@ const Home: React.FC = () => {
               className="w-full rounded-xl bg-primary-dark hover:bg-primary-medium text-brand-beige py-3 text-xs font-bold transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer disabled:opacity-55"
             >
               {messageMutation.isPending ? 'Enviando...' : 'Enviar Mensagem'}
+            </button>
+          </form>
+        </motion.div>
+      </section>
+
+      {/* Customer Review / Evaluation Section */}
+      <section className="mx-auto max-w-4xl px-4">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6 }}
+          className="bg-white dark:bg-zinc-900 border border-gray-150 dark:border-zinc-800/80 rounded-3xl p-8 shadow-lg text-left space-y-6"
+        >
+          <div>
+            <h3 className="font-poppins text-lg font-bold text-gray-800 dark:text-white">
+              Deixe seu Depoimento
+            </h3>
+            <p className="text-xs text-gray-500 dark:text-zinc-400 mt-1 leading-relaxed">
+              Sua opinião é fundamental para nós! Compartilhe como foi a sua experiência com a Ruraliza Negócios e ajude outros produtores rurais. Sua avaliação aparecerá no painel administrativo e, após aprovação, será mostrada no portal.
+            </p>
+          </div>
+
+          <form onSubmit={handleEvalSubmit} className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 dark:text-zinc-400 mb-1">
+                  Nome Completo *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={evalNome}
+                  onChange={(e) => setEvalNome(e.target.value)}
+                  placeholder="Seu nome"
+                  className="w-full text-xs rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-850 py-2.5 px-3 focus:outline-none focus:border-primary-medium dark:text-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 dark:text-zinc-400 mb-1">
+                  Sua Atividade / Relação *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={evalCargo}
+                  onChange={(e) => setEvalCargo(e.target.value)}
+                  placeholder="Ex: Produtor Rural - Fazenda Planalto"
+                  className="w-full text-xs rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-850 py-2.5 px-3 focus:outline-none focus:border-primary-medium dark:text-white"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-gray-600 dark:text-zinc-400 mb-1">
+                Sua Avaliação *
+              </label>
+              <textarea
+                rows={4}
+                required
+                value={evalTexto}
+                onChange={(e) => setEvalTexto(e.target.value)}
+                placeholder="Escreva aqui seu depoimento sobre nossos serviços, atendimento dos corretores..."
+                className="w-full text-xs rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-850 py-2.5 px-3 focus:outline-none focus:border-primary-medium dark:text-white resize-none"
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={testimonialMutation.isPending}
+              className="w-full rounded-xl bg-primary-dark hover:bg-primary-medium text-white py-3 text-xs font-bold transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer disabled:opacity-55"
+            >
+              {testimonialMutation.isPending ? 'Enviando avaliação...' : 'Enviar Depoimento'}
             </button>
           </form>
         </motion.div>

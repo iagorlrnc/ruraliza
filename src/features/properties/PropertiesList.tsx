@@ -105,7 +105,7 @@ const PropertiesList: React.FC = () => {
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-zinc-800 font-sans">
                 {filteredProperties.map((prop) => (
-                  <tr key={prop.id} className="hover:bg-gray-50/50 dark:hover:bg-zinc-850/50 transition-colors">
+                  <tr key={prop.id} className="hover:bg-primary-medium/5 dark:hover:bg-zinc-800/80 transition-colors cursor-pointer">
                     <td className="px-6 py-4 font-bold text-primary-medium dark:text-primary-light">
                       {prop.codigo}
                     </td>

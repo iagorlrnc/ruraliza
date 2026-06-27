@@ -96,8 +96,38 @@ export interface DashboardMetrics {
   totalClientes: number;
   totalAdmins: number;
   totalMensagens: number;
-  mensagensPendentes: number;
   leadsMes: number;
+  mensagensPendentes: number;
   solicitacoesVisita: number;
   totalVisualizacoes: number;
 }
+
+export interface Configuracoes {
+  id: string;
+  telefone: string;
+  telefone_secundario?: string;
+  email: string;
+  endereco: string;
+  creci: string;
+  latitude?: number;
+  longitude?: number;
+  social_facebook?: string;
+  social_instagram?: string;
+  social_linkedin?: string;
+  social_whatsapp?: string;
+  updated_at?: string;
+}
+
+export interface Vendedor {
+  id: string;
+  nome: string;
+  role: string;
+  especializacao: string;
+  telefone?: string;
+  email?: string;
+  foto?: string;
+  creci?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+

@@ -1,4 +1,4 @@
-import { Imovel, Usuario, Mensagem, SolicitacaoVisita, Depoimento, DashboardMetrics, StatusMensagem, StatusVisita } from '../types';
+import { Imovel, Usuario, Mensagem, SolicitacaoVisita, Depoimento, DashboardMetrics, StatusMensagem, StatusVisita, Configuracoes, Vendedor } from '../types';
 
 const STORAGE_KEYS = {
   PROPERTIES: 'ruraliza_properties',
@@ -6,7 +6,9 @@ const STORAGE_KEYS = {
   MESSAGES: 'ruraliza_messages',
   VISITS: 'ruraliza_visits',
   TESTIMONIALS: 'ruraliza_testimonials',
-  METRICS_VIEWS: 'ruraliza_property_views'
+  METRICS_VIEWS: 'ruraliza_property_views',
+  CONFIG: 'ruraliza_config',
+  SELLERS: 'ruraliza_sellers'
 };
 
 const INITIAL_PROPERTIES: Imovel[] = [
@@ -265,6 +267,57 @@ const INITIAL_TESTIMONIALS: Depoimento[] = [
   }
 ];
 
+const INITIAL_CONFIG: Configuracoes = {
+  id: 'c0b67540-3b00-4b08-8e6f-fb9f8ee18299',
+  telefone: '(18) 3222-1234',
+  telefone_secundario: '(18) 99888-7766',
+  email: 'contato@ruralizanegocios.com.br',
+  endereco: 'Av. Coronel José Soares Marcondes, 1500 - Centro, Presidente Prudente - SP',
+  creci: '35.421-J',
+  latitude: -22.122765,
+  longitude: -51.389270,
+  social_facebook: 'https://facebook.com/ruraliza',
+  social_instagram: 'https://instagram.com/ruraliza',
+  social_linkedin: 'https://linkedin.com/company/ruraliza',
+  social_whatsapp: 'https://wa.me/5518998887766'
+};
+
+const INITIAL_SELLERS: Vendedor[] = [
+  {
+    id: 'vendedor-1',
+    nome: 'Renato Silva',
+    role: 'Diretor Executivo & Corretor Sênior',
+    especializacao: 'Grandes transações de terras e expansão pecuária',
+    telefone: '(18) 99888-7766',
+    email: 'contato@ruralizanegocios.com.br',
+    foto: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&w=300&q=80',
+    creci: '12345-F',
+    created_at: new Date().toISOString()
+  },
+  {
+    id: 'vendedor-2',
+    nome: 'Dr. Arthur Mendes',
+    role: 'Consultor Jurídico Agrário',
+    especializacao: 'Georreferenciamento, regularização de posses e compliance ambiental',
+    telefone: '(18) 99888-7767',
+    email: 'arthur@ruralizanegocios.com.br',
+    foto: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=300&q=80',
+    creci: '23456-F',
+    created_at: new Date().toISOString()
+  },
+  {
+    id: 'vendedor-3',
+    nome: 'Sofia Rezende',
+    role: 'Engenheira Agrônoma',
+    especializacao: 'Análise técnica de solos, capacidade de pastagens e estudos hídricos',
+    telefone: '(18) 99888-7768',
+    email: 'sofia@ruralizanegocios.com.br',
+    foto: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=300&q=80',
+    creci: '34567-F',
+    created_at: new Date().toISOString()
+  }
+];
+
 // Initialize localStorage if keys do not exist
 const initializeStorage = () => {
   if (!localStorage.getItem(STORAGE_KEYS.PROPERTIES)) {
@@ -281,6 +334,12 @@ const initializeStorage = () => {
   }
   if (!localStorage.getItem(STORAGE_KEYS.TESTIMONIALS)) {
     localStorage.setItem(STORAGE_KEYS.TESTIMONIALS, JSON.stringify(INITIAL_TESTIMONIALS));
+  }
+  if (!localStorage.getItem(STORAGE_KEYS.CONFIG)) {
+    localStorage.setItem(STORAGE_KEYS.CONFIG, JSON.stringify(INITIAL_CONFIG));
+  }
+  if (!localStorage.getItem(STORAGE_KEYS.SELLERS)) {
+    localStorage.setItem(STORAGE_KEYS.SELLERS, JSON.stringify(INITIAL_SELLERS));
   }
   if (!localStorage.getItem(STORAGE_KEYS.METRICS_VIEWS)) {
     localStorage.setItem(STORAGE_KEYS.METRICS_VIEWS, JSON.stringify({
@@ -703,5 +762,80 @@ export const mockDb = {
       solicitacoesVisita: totalVisits,
       totalVisualizacoes: totalViews
     };
+  },
+
+  // --- CONFIGURATIONS ---
+  getConfiguracoes: (): Configuracoes => {
+    initializeStorage();
+    const data = localStorage.getItem(STORAGE_KEYS.CONFIG);
+    return data ? JSON.parse(data) : INITIAL_CONFIG;
+  },
+
+  saveConfiguracoes: (config: Partial<Configuracoes>): Configuracoes => {
+    initializeStorage();
+    const current = mockDb.getConfiguracoes();
+    const updated = {
+      ...current,
+      ...config,
+      updated_at: new Date().toISOString()
+    };
+    localStorage.setItem(STORAGE_KEYS.CONFIG, JSON.stringify(updated));
+    return updated;
+  },
+
+  // --- SELLERS ---
+  getVendedores: (): Vendedor[] => {
+    initializeStorage();
+    const data = localStorage.getItem(STORAGE_KEYS.SELLERS);
+    return data ? JSON.parse(data) : [];
+  },
+
+  saveVendedor: (vendedor: Partial<Vendedor> & { nome: string; role: string; especializacao: string }): Vendedor => {
+    initializeStorage();
+    const list = mockDb.getVendedores();
+    let saved: Vendedor;
+
+    if (vendedor.id) {
+      const index = list.findIndex(v => v.id === vendedor.id);
+      if (index !== -1) {
+        list[index] = {
+          ...list[index],
+          ...vendedor,
+          updated_at: new Date().toISOString()
+        };
+        saved = list[index];
+      } else {
+        throw new Error('Vendedor não encontrado');
+      }
+    } else {
+      const id = 'vendedor-' + Math.random().toString(36).substr(2, 9);
+      saved = {
+        id,
+        nome: vendedor.nome,
+        role: vendedor.role,
+        especializacao: vendedor.especializacao,
+        telefone: vendedor.telefone,
+        email: vendedor.email,
+        foto: vendedor.foto || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80',
+        creci: vendedor.creci,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+      list.push(saved);
+    }
+
+    localStorage.setItem(STORAGE_KEYS.SELLERS, JSON.stringify(list));
+    return saved;
+  },
+
+  deleteVendedor: (id: string): boolean => {
+    initializeStorage();
+    const list = mockDb.getVendedores();
+    const filtered = list.filter(v => v.id !== id);
+    if (filtered.length !== list.length) {
+      localStorage.setItem(STORAGE_KEYS.SELLERS, JSON.stringify(filtered));
+      return true;
+    }
+    return false;
   }
 };

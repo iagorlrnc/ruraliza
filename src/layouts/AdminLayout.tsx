@@ -13,7 +13,8 @@ import {
   X, 
   TreePine, 
   Globe,
-  UserCheck
+  UserCheck,
+  Sliders
 } from 'lucide-react';
 
 const AdminLayout: React.FC = () => {
@@ -67,7 +68,9 @@ const AdminLayout: React.FC = () => {
     { name: 'Gestão de Imóveis', path: '/imoveis', icon: Home },
     { name: 'Mensagens Recebidas', path: '/mensagens', icon: MessageSquare },
     { name: 'Usuários (CRM)', path: '/usuarios', icon: Users },
-    { name: 'Depoimentos', path: '/depoimentos', icon: MessageCircle }
+    { name: 'Gestão de Vendedores', path: '/vendedores', icon: UserCheck },
+    { name: 'Depoimentos', path: '/depoimentos', icon: MessageCircle },
+    { name: 'Configurações', path: '/configuracoes', icon: Sliders }
   ];
 
   const isActive = (path: string) => {
@@ -82,8 +85,12 @@ const AdminLayout: React.FC = () => {
       {/* Sidebar - Desktop */}
       <aside className="hidden lg:flex flex-col w-64 border-r border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shrink-0">
         <div className="p-6 border-b border-gray-100 dark:border-zinc-800 flex items-center gap-2">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary-dark text-brand-beige">
-            <TreePine className="h-5 w-5 text-primary-light" />
+          <div className="flex items-center justify-center">
+            <img 
+              src="/logo.png" 
+              alt="Ruraliza" 
+              className="h-10 sm:h-10 w-auto object-contain"
+            />
           </div>
           <div>
             <span className="font-poppins text-base font-bold tracking-tight text-primary-dark dark:text-white block leading-tight">

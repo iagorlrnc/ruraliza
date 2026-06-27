@@ -297,6 +297,16 @@ const Imoveis: React.FC = () => {
                 <div key={i} className="bg-white dark:bg-zinc-900 border border-gray-150 dark:border-zinc-800 rounded-2xl h-80 skeleton-shimmer shadow-sm"></div>
               ))}
             </div>
+          ) : properties.length === 0 ? (
+            <div className="bg-white dark:bg-zinc-900 border border-gray-150 dark:border-zinc-800 p-12 rounded-3xl shadow-sm text-center space-y-4">
+              <div className="h-12 w-12 rounded-full bg-primary-medium/10 text-primary-medium mx-auto flex items-center justify-center">
+                <Search className="h-6 w-6" />
+              </div>
+              <h3 className="font-poppins font-bold text-base text-gray-800 dark:text-white">Sem informações no momento</h3>
+              <p className="text-xs text-gray-500 dark:text-zinc-400 max-w-sm mx-auto leading-relaxed">
+                Não há imóveis disponíveis cadastrados no sistema.
+              </p>
+            </div>
           ) : filteredProperties.length === 0 ? (
             <div className="bg-white dark:bg-zinc-900 border border-gray-150 dark:border-zinc-800 p-12 rounded-3xl shadow-sm text-center space-y-4">
               <div className="h-12 w-12 rounded-full bg-primary-medium/10 text-primary-medium mx-auto flex items-center justify-center">
