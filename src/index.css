@@ -134,3 +134,11 @@ input:-webkit-autofill:active {
   -webkit-box-shadow: 0 0 0 1000px transparent inset !important;
   -webkit-text-fill-color: #ffffff !important;
 }
+
+/* Force transparent background for the hero search input in Home.tsx to match its parent container */
+input[type="text"].hero-search-input,
+.dark input[type="text"].hero-search-input {
+  background-color: transparent !important;
+}
+
+

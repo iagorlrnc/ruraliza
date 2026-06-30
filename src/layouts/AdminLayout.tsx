@@ -12,7 +12,6 @@ import {
   LogOut, 
   Menu, 
   X, 
-  TreePine, 
   Globe,
   UserCheck,
   Sliders,

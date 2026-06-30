@@ -351,7 +351,7 @@ const DetalheImovel: React.FC = () => {
           <div className="space-y-4">
             <div className="relative aspect-[16/9] overflow-hidden rounded-3xl bg-gray-100 border border-gray-200 dark:border-zinc-800">
               <img
-                src={property.imagens && property.imagens.length > 0 ? property.imagens[activeImageIndex].url : 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1200&q=80'}
+                src={property.imagens && property.imagens.length > 0 ? property.imagens[activeImageIndex].url : '/imagesub.png'}
                 alt={property.titulo}
                 className="w-full h-full object-cover transition-all"
               />

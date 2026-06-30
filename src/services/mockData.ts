@@ -847,7 +847,7 @@ export const mockDb = {
         especializacao: vendedor.especializacao,
         telefone: vendedor.telefone,
         email: vendedor.email,
-        foto: vendedor.foto || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80',
+        foto: vendedor.foto || '/imagesub.png',
         creci: vendedor.creci,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()

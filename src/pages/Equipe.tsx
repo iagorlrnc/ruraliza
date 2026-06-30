@@ -16,7 +16,7 @@ const TeamCard: React.FC<{ t: any; idx: number }> = ({ t, idx }) => (
   >
     <div className="h-28 w-28 rounded-full overflow-hidden border-2 border-primary-medium/20 shadow-inner">
       <img 
-        src={t.foto || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80'} 
+        src={t.foto || '/imagesub.png'} 
         alt={t.nome} 
         className="w-full h-full object-cover" 
         data-no-protect 

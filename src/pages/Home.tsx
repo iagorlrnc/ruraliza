@@ -292,7 +292,7 @@ const Home: React.FC = () => {
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.6, delay: 0.3 }}
-            className="mx-auto max-w-2xl flex flex-col sm:flex-row gap-2 bg-white/90 dark:bg-zinc-900/90 p-2 rounded-2xl border border-white/20 shadow-2xl backdrop-blur-md"
+            className="mx-auto max-w-2xl flex flex-col sm:flex-row gap-2 bg-white/90 dark:bg-zinc-900/90 p-2 rounded-lg border border-white/20 shadow-2xl backdrop-blur-md"
           >
             <div className="flex-1 flex items-center px-3 gap-2">
               <Search className="h-5 w-5 text-gray-400 shrink-0" />
@@ -306,7 +306,7 @@ const Home: React.FC = () => {
             </div>
             <button
               type="submit"
-              className="rounded-xl bg-primary-dark hover:bg-primary-medium text-brand-beige py-3 px-6 text-sm font-semibold tracking-wide transition-colors flex items-center justify-center gap-2"
+              className="rounded-lg bg-primary-dark hover:bg-primary-medium text-brand-beige py-3 px-6 text-sm font-semibold tracking-wide transition-colors flex items-center justify-center gap-2"
             >
               Pesquisar
             </button>
@@ -383,7 +383,7 @@ const Home: React.FC = () => {
                   >
                     <div className="relative aspect-[4/3] overflow-hidden">
                       <img
-                        src={prop.imagens && prop.imagens.length > 0 ? prop.imagens[0].url : 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=600&q=80'}
+                        src={prop.imagens && prop.imagens.length > 0 ? prop.imagens[0].url : '/imagesub.png'}
                         alt={prop.titulo}
                         className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                       />
@@ -538,7 +538,7 @@ const Home: React.FC = () => {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.5, delay: idx * 0.1 }}
-                className="bg-white dark:bg-zinc-900 border border-gray-100 dark:border-zinc-800 p-6 rounded-2xl shadow-sm text-left hover:shadow-md transition-shadow"
+                className="bg-white dark:bg-zinc-900 border border-gray-100 dark:border-zinc-800 p-6 rounded-lg shadow-sm text-left hover:shadow-md transition-shadow"
               >
                 <div className="h-10 w-10 flex items-center justify-center bg-primary-medium/10 rounded-xl text-primary-medium dark:text-primary-light mb-4">
                   <Icon className="h-5 w-5" />
@@ -596,7 +596,7 @@ const Home: React.FC = () => {
                   {approvedTestimonials.map((dep) => (
                     <div 
                       key={dep.id} 
-                      className="bg-white dark:bg-zinc-900 border border-gray-150 dark:border-zinc-800 p-6 rounded-2xl shadow-sm flex flex-col justify-between text-left shrink-0 w-full md:w-[calc((100%-48px)/3)]"
+                      className="bg-white dark:bg-zinc-900 border border-gray-150 dark:border-zinc-800 p-6 rounded-lg shadow-sm flex flex-col justify-between text-left shrink-0 w-full md:w-[calc((100%-48px)/3)]"
                     >
                       <p className="text-xs text-gray-500 dark:text-zinc-400 italic leading-relaxed">
                         "{dep.texto}"

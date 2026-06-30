@@ -363,7 +363,7 @@ const Imoveis: React.FC = () => {
                 >
                   <div className="relative aspect-[4/3] overflow-hidden bg-gray-100">
                     <img
-                      src={prop.imagens && prop.imagens.length > 0 ? prop.imagens[0].url : 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=600&q=80'}
+                      src={prop.imagens && prop.imagens.length > 0 ? prop.imagens[0].url : '/imagesub.png'}
                       alt={prop.titulo}
                       className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                       loading="lazy"
