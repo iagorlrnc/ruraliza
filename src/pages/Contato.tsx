@@ -81,7 +81,7 @@ const Contato: React.FC = () => {
             </div>
             <div className="space-y-1">
               <h4 className="font-poppins text-xs font-bold text-gray-800 dark:text-white uppercase tracking-wider">Telefone & WhatsApp</h4>
-              <p className="text-xs text-gray-500 dark:text-zinc-400 font-sans">{config?.telefone || '(18) 3222-1234'}</p>
+              <p className="text-xs text-gray-500 dark:text-zinc-400 font-sans">{config?.telefone || '[Telefone não cadastrado]'}</p>
               {config?.telefone_secundario && (
                 <p className="text-xs text-primary-medium dark:text-primary-light font-bold font-sans">{config.telefone_secundario}</p>
               )}
@@ -95,7 +95,7 @@ const Contato: React.FC = () => {
             </div>
             <div className="space-y-1">
               <h4 className="font-poppins text-xs font-bold text-gray-800 dark:text-white uppercase tracking-wider">E-mail Corporativo</h4>
-              <p className="text-xs text-gray-500 dark:text-zinc-400 font-sans break-all">{config?.email || 'contato@ruralizanegocios.com.br'}</p>
+              <p className="text-xs text-gray-500 dark:text-zinc-400 font-sans break-all">{config?.email || '[E-mail não cadastrado]'}</p>
             </div>
           </div>
 
@@ -107,7 +107,7 @@ const Contato: React.FC = () => {
             <div className="space-y-1">
               <h4 className="font-poppins text-xs font-bold text-gray-800 dark:text-white uppercase tracking-wider">Nosso Escritório</h4>
               <p className="text-xs text-gray-500 dark:text-zinc-400 leading-snug">
-                {config?.endereco || 'Av. Coronel José Soares Marcondes, 1500 - Centro, Presidente Prudente - SP'}
+                {config?.endereco || '[Endereço não cadastrado]'}
               </p>
             </div>
           </div>

@@ -195,7 +195,7 @@ const Sobre: React.FC = () => {
           </div>
           <div className="bg-primary-medium/25 border border-primary-medium/35 px-4 py-3 rounded-2xl shrink-0 text-center">
             <span className="block text-[10px] text-brand-beige-dark font-semibold uppercase tracking-wider">CRECI Jurídico</span>
-            <strong className="text-base text-white font-poppins block">Nº {config?.creci || '35.421-J'}</strong>
+            <strong className="text-base text-white font-poppins block">Nº {config?.creci || '[Não cadastrado]'}</strong>
           </div>
         </div>
       </section>

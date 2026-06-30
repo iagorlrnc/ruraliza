@@ -2,6 +2,8 @@
 
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   --color-primary-dark: #1B4332;
   --color-primary-medium: #2D6A4F;
@@ -83,6 +85,17 @@ select {
 
 /* Selected/focused inputs & select dropdowns styling */
 /* Focus styles are handled by tailwind classes or default theme styles to maintain original background and text colors */
+
+/* General placeholder colors to ensure textareas match inputs */
+input::placeholder,
+textarea::placeholder {
+  color: #9ca3af !important; /* matches tailwind text-gray-400 */
+}
+
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: #71717a !important; /* matches tailwind text-zinc-500 */
+}
 
 /* Hide placeholder when input is focused/selected */
 input:focus::placeholder,

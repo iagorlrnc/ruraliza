@@ -134,6 +134,12 @@ const DetalheImovel: React.FC = () => {
     enabled: !!id
   });
 
+  // Fetch configurations for contact info
+  const { data: config } = useQuery({
+    queryKey: ['settings'],
+    queryFn: api.getConfiguracoes
+  });
+
   // Increment view count only once per user/property using localStorage tracking
   useEffect(() => {
     if (id) {
@@ -322,8 +328,9 @@ const DetalheImovel: React.FC = () => {
   });
 
   // Generate WhatsApp message url
-  const waMessage = encodeURIComponent(`Olá, tenho interesse no imóvel ${property.codigo} - ${property.titulo}. Gostaria de mais informações.`);
-  const waUrl = `https://wa.me/5518998887766?text=${waMessage}`;
+  const waMessage = encodeURIComponent(`Olá, tenho interesse no imóvel ${property?.codigo} - ${property?.titulo}. Gostaria de mais informações.`);
+  const cleanPhone = config?.telefone ? config.telefone.replace(/\D/g, '') : '';
+  const waUrl = cleanPhone ? `https://wa.me/55${cleanPhone}?text=${waMessage}` : '#';
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 space-y-8 text-left">
@@ -584,15 +591,22 @@ const DetalheImovel: React.FC = () => {
             </form>
 
             <div className="border-t border-gray-100 dark:border-zinc-800 pt-4">
-              <a
-                href={waUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="w-full rounded-xl bg-green-600 hover:bg-green-700 text-white py-3 text-xs font-bold transition-colors flex items-center justify-center gap-2 shadow-md cursor-pointer"
-              >
-                <MessageCircle className="h-4 w-4" />
-                Chamar no WhatsApp
-              </a>
+              {cleanPhone ? (
+                <a
+                  href={waUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="w-full rounded-xl bg-green-600 hover:bg-green-700 text-white py-3 text-xs font-bold transition-colors flex items-center justify-center gap-2 shadow-md cursor-pointer"
+                >
+                  <MessageCircle className="h-4 w-4" />
+                  Chamar no WhatsApp
+                </a>
+              ) : (
+                <div className="w-full rounded-xl bg-gray-100 dark:bg-zinc-800 text-gray-500 py-3 text-xs font-bold flex items-center justify-center gap-2 border border-dashed border-gray-300 dark:border-zinc-700">
+                  <MessageCircle className="h-4 w-4 text-gray-400" />
+                  [WhatsApp de contato não cadastrado]
+                </div>
+              )}
             </div>
           </div>
         </div>

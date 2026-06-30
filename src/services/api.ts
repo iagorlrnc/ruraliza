@@ -546,6 +546,20 @@ export const api = {
     return true;
   },
 
+  updateTestimonialApproval: async (id: string, aprovado: boolean): Promise<boolean> => {
+    if (!isSupabaseConfigured()) {
+      return mockDb.updateTestimonialApproval(id, aprovado);
+    }
+
+    const { error } = await supabase
+      .from('tabela_depoimentos')
+      .update({ aprovado })
+      .eq('id', id);
+
+    if (error) throw error;
+    return true;
+  },
+
   // --- DASHBOARD METRICS ---
   getDashboardMetrics: async (): Promise<DashboardMetrics> => {
     if (!isSupabaseConfigured()) {

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
-import { Menu, X, MapPin, Phone, Mail } from 'lucide-react';
+import { Menu, X, MapPin, Phone, Mail, Sun, Moon } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
+import { useTheme } from '../contexts/ThemeContext';
 import { api } from '../services/api';
 
 // Custom SVG Icons to avoid lucide-react version compatibility issues
@@ -32,6 +33,7 @@ const PublicLayout: React.FC = () => {
   const [scrolled, setScrolled] = useState(false);
   const [showWatermark, setShowWatermark] = useState(false);
   const location = useLocation();
+  const { darkMode, toggleDarkMode } = useTheme();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -172,7 +174,7 @@ const PublicLayout: React.FC = () => {
             {/* Logo */}
             <Link to="/" className="flex items-center gap-2 group">
               <img 
-              src="/logonome.png" 
+              src={darkMode ? "/logonome.png" : "/logonomelight.png"} 
               alt="Ruraliza" 
               className="h-8 sm:h-10 w-auto object-contain"
               data-no-protect
@@ -198,10 +200,24 @@ const PublicLayout: React.FC = () => {
 
             {/* Header Right Actions */}
             <div className="hidden md:flex items-center gap-4">
+              <button
+                onClick={toggleDarkMode}
+                className="rounded-lg p-2 text-gray-600 hover:bg-gray-100 dark:text-zinc-300 dark:hover:bg-zinc-800 transition-colors"
+                aria-label="Alternar modo escuro"
+              >
+                {darkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+              </button>
             </div>
 
             {/* Mobile Menu Trigger */}
             <div className="flex items-center gap-3 md:hidden">
+              <button
+                onClick={toggleDarkMode}
+                className="rounded-lg p-2 text-gray-600 hover:bg-gray-100 dark:text-zinc-300 dark:hover:bg-zinc-800 transition-colors"
+                aria-label="Alternar modo escuro"
+              >
+                {darkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+              </button>
               <button
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                 className="rounded-lg p-2 text-gray-600 hover:bg-gray-100 dark:text-zinc-300 dark:hover:bg-zinc-800 transition-colors"
@@ -306,17 +322,17 @@ const PublicLayout: React.FC = () => {
                 <li className="flex items-start gap-2.5">
                   <Phone className="h-4 w-4 shrink-0 text-primary-light mt-0.5" />
                   <span>
-                    {config?.telefone || '(99) 99999-9999'}
+                    {config?.telefone || '[Telefone não cadastrado]'}
                     {config?.telefone_secundario ? ` / ${config.telefone_secundario}` : ''}
                   </span>
                 </li>
                 <li className="flex items-start gap-2.5">
                   <Mail className="h-4 w-4 shrink-0 text-primary-light mt-0.5" />
-                  <span className="break-all">{config?.email || 'contato@ruralizanegocios.com.br'}</span>
+                  <span className="break-all">{config?.email || '[E-mail não cadastrado]'}</span>
                 </li>
                 <li className="flex items-start gap-2.5">
                   <MapPin className="h-4 w-4 shrink-0 text-primary-light mt-0.5" />
-                  <span className="leading-snug">{config?.endereco || 'Palmas -TO'}</span>
+                  <span className="leading-snug">{config?.endereco || '[Endereço não cadastrado]'}</span>
                 </li>
               </ul>
             </div>
@@ -328,7 +344,7 @@ const PublicLayout: React.FC = () => {
               </h3>
               <div className="bg-primary-medium/20 dark:bg-zinc-800/50 p-4 rounded-xl border border-primary-medium/30 space-y-2">
                 <p className="text-xs text-brand-beige-dark/80">
-                  CRECI Jurídico: <strong className="text-white">{config?.creci || '35.421-J'}</strong>
+                  CRECI Jurídico: <strong className="text-white">{config?.creci || '[CRECI não cadastrado]'}</strong>
                 </p>
                 <p className="text-[11px] text-brand-beige-dark/60 leading-relaxed">
                   Todas as propriedades passam por rigorosa auditoria documental antes de serem anunciadas.

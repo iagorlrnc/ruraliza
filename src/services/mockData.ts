@@ -249,6 +249,7 @@ const INITIAL_TESTIMONIALS: Depoimento[] = [
     nome: 'João da Silva',
     cargo: 'Produtor Rural - Fazenda Sol Nascente',
     texto: 'A Ruraliza Negócios nos ajudou a encontrar a área perfeita para expandir nossa plantação de soja. Atendimento técnico especializado e de extrema confiança.',
+    aprovado: true,
     created_at: new Date().toISOString()
   },
   {
@@ -256,6 +257,7 @@ const INITIAL_TESTIMONIALS: Depoimento[] = [
     nome: 'Maria Oliveira',
     cargo: 'Investidora de Imóveis',
     texto: 'Excelente assessoria na compra do nosso rancho de lazer. Todo o processo de verificação documental foi ágil e transparente. Recomendo muito!',
+    aprovado: true,
     created_at: new Date().toISOString()
   },
   {
@@ -263,6 +265,7 @@ const INITIAL_TESTIMONIALS: Depoimento[] = [
     nome: 'Carlos Rezende',
     cargo: 'Pecuarista - Sítio Jatobá',
     texto: 'Profissionais que realmente entendem do homem do campo. Desde a avaliação do pasto até a documentação final, o atendimento foi impecável.',
+    aprovado: true,
     created_at: new Date().toISOString()
   }
 ];
@@ -314,6 +317,17 @@ const INITIAL_SELLERS: Vendedor[] = [
     email: 'sofia@ruralizanegocios.com.br',
     foto: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=300&q=80',
     creci: '34567-F',
+    created_at: new Date().toISOString()
+  },
+  {
+    id: 'vendedor-4',
+    nome: 'Guilherme Franco',
+    role: 'Corretor Comercial',
+    especializacao: 'Chácaras de alto padrão e ranchos fluviais de lazer',
+    telefone: '(18) 99888-7769',
+    email: 'guilherme@ruralizanegocios.com.br',
+    foto: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=300&q=80',
+    creci: '45678-F',
     created_at: new Date().toISOString()
   }
 ];
@@ -701,6 +715,7 @@ export const mockDb = {
         nome: depoimento.nome,
         cargo: depoimento.cargo,
         texto: depoimento.texto,
+        aprovado: depoimento.aprovado ?? false,
         created_at: new Date().toISOString()
       };
       list.push(saved);
@@ -716,6 +731,18 @@ export const mockDb = {
     const filtered = list.filter((d: Depoimento) => d.id !== id);
     if (filtered.length !== list.length) {
       localStorage.setItem(STORAGE_KEYS.TESTIMONIALS, JSON.stringify(filtered));
+      return true;
+    }
+    return false;
+  },
+
+  updateTestimonialApproval: (id: string, aprovado: boolean): boolean => {
+    initializeStorage();
+    const list = JSON.parse(localStorage.getItem(STORAGE_KEYS.TESTIMONIALS) || '[]');
+    const index = list.findIndex((d: Depoimento) => d.id === id);
+    if (index !== -1) {
+      list[index].aprovado = aprovado;
+      localStorage.setItem(STORAGE_KEYS.TESTIMONIALS, JSON.stringify(list));
       return true;
     }
     return false;

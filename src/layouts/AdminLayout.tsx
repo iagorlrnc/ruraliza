@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, Outlet, useLocation, useNavigate, Navigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
+import { useTheme } from '../contexts/ThemeContext';
 import { 
   LayoutDashboard, 
   Home, 
@@ -14,7 +15,9 @@ import {
   TreePine, 
   Globe,
   UserCheck,
-  Sliders
+  Sliders,
+  Sun,
+  Moon
 } from 'lucide-react';
 
 const AdminLayout: React.FC = () => {
@@ -23,6 +26,7 @@ const AdminLayout: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { darkMode, toggleDarkMode } = useTheme();
 
   const handleLogout = async () => {
     try {
@@ -81,13 +85,13 @@ const AdminLayout: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-zinc-950 text-gray-900 dark:text-zinc-100 flex transition-colors duration-300">
+    <div className="h-screen w-screen bg-gray-50 dark:bg-zinc-950 text-gray-900 dark:text-zinc-100 flex overflow-hidden transition-colors duration-300">
       {/* Sidebar - Desktop */}
       <aside className="hidden lg:flex flex-col w-64 border-r border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shrink-0">
         <div className="p-6 border-b border-gray-100 dark:border-zinc-800 flex items-center gap-2">
           <div className="flex items-center justify-center">
             <img 
-              src="/logo.png" 
+              src={darkMode ? "/logo.png" : "/logolight.png"} 
               alt="Ruraliza" 
               className="h-10 sm:h-10 w-auto object-contain"
             />
@@ -155,10 +159,19 @@ const AdminLayout: React.FC = () => {
       <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-white dark:bg-zinc-900 border-r border-gray-200 dark:border-zinc-800 flex flex-col lg:hidden transition-transform duration-300 transform ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="p-6 border-b border-gray-100 dark:border-zinc-800 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary-dark text-brand-beige">
-              <TreePine className="h-5 w-5 text-primary-light" />
+            <div className="flex items-center justify-center">
+              <img 
+                src={darkMode ? "/logo.png" : "/logolight.png"} 
+                alt="Ruraliza" 
+                className="h-9 w-auto object-contain"
+              />
             </div>
-            <span className="font-poppins text-base font-bold text-primary-dark dark:text-white">Ruraliza</span>
+            <div>
+              <span className="font-poppins text-base font-bold text-primary-dark dark:text-white block leading-tight">Ruraliza</span>
+              <span className="font-sans text-[9px] tracking-widest font-bold text-primary-medium dark:text-primary-light block uppercase">
+                Painel Admin
+              </span>
+            </div>
           </div>
           <button 
             onClick={() => setSidebarOpen(false)}
@@ -230,6 +243,13 @@ const AdminLayout: React.FC = () => {
 
           {/* Topbar User Profile */}
           <div className="flex items-center gap-4">
+            <button
+              onClick={toggleDarkMode}
+              className="rounded-lg p-2 text-gray-600 hover:bg-gray-100 dark:text-zinc-300 dark:hover:bg-zinc-800 transition-colors"
+              aria-label="Alternar modo escuro"
+            >
+              {darkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+            </button>
             <div className="flex items-center gap-2.5">
               <div className="h-8 w-8 rounded-lg bg-primary-medium/10 text-primary-dark dark:text-primary-light flex items-center justify-center font-bold text-sm">
                 <UserCheck className="h-4.5 w-4.5" />

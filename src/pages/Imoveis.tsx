@@ -10,7 +10,6 @@ const Imoveis: React.FC = () => {
   useSEO('Catálogo de Imóveis', 'Catálogo completo de fazendas, sítios, ranchos e chácaras disponíveis para venda e locação.');
   const [searchParams, setSearchParams] = useSearchParams();
 
-  // Filters State
   const [busca, setBusca] = useState(searchParams.get('busca') || '');
   const [tipo, setTipo] = useState(searchParams.get('tipo') || '');
   const [modalidade, setModalidade] = useState(searchParams.get('modalidade') || '');
@@ -23,7 +22,6 @@ const Imoveis: React.FC = () => {
   const [areaMax, setAreaMax] = useState(searchParams.get('areaMax') || '');
   const [sortBy, setSortBy] = useState('recentes');
 
-  // Synchronize state from query parameters on mount or URL changes
   useEffect(() => {
     setBusca(searchParams.get('busca') || '');
     setTipo(searchParams.get('tipo') || '');
@@ -36,18 +34,14 @@ const Imoveis: React.FC = () => {
     setAreaMax(searchParams.get('areaMax') || '');
   }, [searchParams]);
 
-  // Fetch properties
   const { data: properties = [], isLoading } = useQuery({
     queryKey: ['properties'],
     queryFn: api.getProperties
   });
 
-  // Apply filters on the client-side for rapid real-time performance
   const filteredProperties = properties.filter((prop) => {
-    // 1. Status Check
     if (prop.status !== 'Ativo') return false;
 
-    // 2. Text Search (title, code, description, city)
     if (busca) {
       const bLower = busca.toLowerCase();
       const matchText = 
@@ -365,7 +359,7 @@ const Imoveis: React.FC = () => {
               {sortedProperties.map((prop) => (
                 <div
                   key={prop.id}
-                  className="group bg-white dark:bg-zinc-900 border border-gray-150 dark:border-zinc-800/80 rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 flex flex-col justify-between text-left h-full"
+                  className="group bg-white dark:bg-zinc-900 border border-gray-150 dark:border-zinc-800/80 rounded-none overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 flex flex-col justify-between text-left h-full"
                 >
                   <div className="relative aspect-[4/3] overflow-hidden bg-gray-100">
                     <img

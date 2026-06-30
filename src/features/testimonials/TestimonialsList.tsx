@@ -1,37 +1,36 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../services/api';
 import { useToast } from '../../contexts/ToastContext';
-import { Plus, Edit2, Trash2, Save, MessageSquareQuote } from 'lucide-react';
+import { Trash2, MessageSquareQuote, Check, X } from 'lucide-react';
 import { Depoimento } from '../../types';
 
 const TestimonialsList: React.FC = () => {
   const { showToast } = useToast();
   const queryClient = useQueryClient();
 
-  // Form State
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [nome, setNome] = useState('');
-  const [cargo, setCargo] = useState('');
-  const [texto, setTexto] = useState('');
-  const [formOpen, setFormOpen] = useState(false);
-
-  // Fetch testimonials
+  // Fetch testimonials (both approved and pending for the admin panel)
   const { data: testimonials = [], isLoading } = useQuery({
     queryKey: ['testimonials'],
     queryFn: api.getTestimonials
   });
 
-  // Save Mutation (Add / Edit)
-  const saveMutation = useMutation({
-    mutationFn: api.saveTestimonial,
-    onSuccess: () => {
-      showToast(editingId ? 'Depoimento atualizado com sucesso.' : 'Depoimento adicionado com sucesso.', 'success');
-      resetForm();
+  // Toggle Approval Mutation
+  const toggleApprovalMutation = useMutation({
+    mutationFn: async ({ id, aprovado }: { id: string; aprovado: boolean }) => {
+      return api.updateTestimonialApproval(id, aprovado);
+    },
+    onSuccess: (_, variables) => {
+      showToast(
+        variables.aprovado 
+          ? 'Depoimento aprovado com sucesso e agora é público!' 
+          : 'Depoimento desaprovado e ocultado da vitrine.', 
+        'success'
+      );
       queryClient.invalidateQueries({ queryKey: ['testimonials'] });
     },
     onError: () => {
-      showToast('Erro ao salvar depoimento.', 'error');
+      showToast('Erro ao atualizar status de aprovação.', 'error');
     }
   });
 
@@ -47,12 +46,11 @@ const TestimonialsList: React.FC = () => {
     }
   });
 
-  const handleEdit = (dep: Depoimento) => {
-    setEditingId(dep.id);
-    setNome(dep.nome);
-    setCargo(dep.cargo);
-    setTexto(dep.texto);
-    setFormOpen(true);
+  const handleToggleApproval = (dep: Depoimento) => {
+    toggleApprovalMutation.mutate({
+      id: dep.id,
+      aprovado: !dep.aprovado
+    });
   };
 
   const handleDelete = (id: string, name: string) => {
@@ -61,116 +59,17 @@ const TestimonialsList: React.FC = () => {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!nome || !cargo || !texto) {
-      showToast('Por favor, preencha todos os campos.', 'error');
-      return;
-    }
-
-    saveMutation.mutate({
-      id: editingId || undefined,
-      nome,
-      cargo,
-      texto
-    });
-  };
-
-  const resetForm = () => {
-    setEditingId(null);
-    setNome('');
-    setCargo('');
-    setTexto('');
-    setFormOpen(false);
-  };
-
   return (
     <div className="space-y-6 text-left">
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h2 className="font-poppins text-lg font-bold text-gray-800 dark:text-white">Gestão de Depoimentos</h2>
-          <p className="text-xs text-gray-500 mt-0.5">Organize os relatos e avaliações que aparecem na página inicial do portal.</p>
+          <p className="text-xs text-gray-500 mt-0.5">
+            Aprove depoimentos enviados por clientes na página pública para que eles apareçam no carrossel da vitrine.
+          </p>
         </div>
-        {!formOpen && (
-          <button
-            onClick={() => setFormOpen(true)}
-            className="rounded-xl bg-primary-dark hover:bg-primary-medium text-brand-beige py-2.5 px-4 text-xs font-bold transition-colors flex items-center gap-1.5 shadow-md"
-          >
-            <Plus className="h-4 w-4" /> Novo Depoimento
-          </button>
-        )}
       </div>
-
-      {/* Toggleable Form Grid */}
-      {formOpen && (
-        <form onSubmit={handleSubmit} className="bg-white dark:bg-zinc-900 border border-gray-150 dark:border-zinc-800 p-6 rounded-3xl shadow-sm space-y-4">
-          <h3 className="font-poppins text-sm font-bold text-gray-800 dark:text-white">
-            {editingId ? 'Editar Depoimento' : 'Adicionar Novo Depoimento'}
-          </h3>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-semibold text-gray-600 dark:text-zinc-400 mb-1">
-                Nome do Autor *
-              </label>
-              <input
-                type="text"
-                required
-                value={nome}
-                onChange={(e) => setNome(e.target.value)}
-                placeholder="Ex: Geraldo Magela"
-                className="w-full text-xs rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-850 py-2.5 px-3 focus:outline-none focus:border-primary-medium dark:text-white"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-gray-600 dark:text-zinc-400 mb-1">
-                Cargo / Identificação *
-              </label>
-              <input
-                type="text"
-                required
-                value={cargo}
-                onChange={(e) => setCargo(e.target.value)}
-                placeholder="Ex: Pecuarista - Fazenda Sol Nascente"
-                className="w-full text-xs rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-850 py-2.5 px-3 focus:outline-none focus:border-primary-medium dark:text-white"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-gray-600 dark:text-zinc-400 mb-1">
-              Texto do Relato / Depoimento *
-            </label>
-            <textarea
-              rows={4}
-              required
-              value={texto}
-              onChange={(e) => setTexto(e.target.value)}
-              placeholder="Escreva a avaliação ou história do cliente..."
-              className="w-full text-xs rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-850 py-2.5 px-3 focus:outline-none focus:border-primary-medium dark:text-white resize-none"
-            />
-          </div>
-
-          <div className="flex gap-2 justify-end">
-            <button
-              type="button"
-              onClick={resetForm}
-              className="rounded-xl border border-gray-200 dark:border-zinc-800 px-4 py-2 text-xs font-bold text-gray-600 dark:text-zinc-400 hover:bg-gray-50 dark:hover:bg-zinc-850 cursor-pointer"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              disabled={saveMutation.isPending}
-              className="rounded-xl bg-primary-dark hover:bg-primary-medium text-white px-4 py-2 text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5"
-            >
-              <Save className="h-4 w-4" />
-              {saveMutation.isPending ? 'Salvando...' : 'Salvar Depoimento'}
-            </button>
-          </div>
-        </form>
-      )}
 
       {/* Testimonials List Grid */}
       {isLoading ? (
@@ -181,7 +80,7 @@ const TestimonialsList: React.FC = () => {
         </div>
       ) : testimonials.length === 0 ? (
         <div className="bg-white dark:bg-zinc-900 border border-gray-150 dark:border-zinc-800 p-12 rounded-3xl text-center text-xs text-gray-400">
-          Nenhum depoimento cadastrado no momento.
+          Nenhum depoimento enviado ou cadastrado no momento.
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -191,8 +90,34 @@ const TestimonialsList: React.FC = () => {
               className="bg-white dark:bg-zinc-900 border border-gray-150 dark:border-zinc-800 p-5 rounded-2xl shadow-sm flex flex-col justify-between"
             >
               <div className="space-y-4 text-left">
-                <div className="h-8 w-8 rounded-lg bg-primary-medium/10 text-primary-medium flex items-center justify-center">
-                  <MessageSquareQuote className="h-4.5 w-4.5" />
+                <div className="flex justify-between items-start">
+                  <div className="h-8 w-8 rounded-lg bg-primary-medium/10 text-primary-medium flex items-center justify-center">
+                    <MessageSquareQuote className="h-4.5 w-4.5" />
+                  </div>
+                  
+                  {/* Status Toggle Button (Aprovar / Desaprovar) */}
+                  <button
+                    onClick={() => handleToggleApproval(dep)}
+                    disabled={toggleApprovalMutation.isPending}
+                    className={`px-2.5 py-1 text-[10px] font-bold rounded-lg border transition-all flex items-center gap-1 cursor-pointer ${
+                      dep.aprovado
+                        ? 'border-green-200 dark:border-green-900/60 bg-green-50 dark:bg-green-950/30 text-green-600 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/40'
+                        : 'border-gray-250 dark:border-zinc-850 bg-gray-50 dark:bg-zinc-800 text-gray-500 dark:text-zinc-400 hover:bg-gray-100 dark:hover:bg-zinc-700'
+                    }`}
+                    title={dep.aprovado ? 'Clique para desaprovar e ocultar' : 'Clique para aprovar e tornar público'}
+                  >
+                    {dep.aprovado ? (
+                      <>
+                        <Check className="h-3 w-3 shrink-0 text-green-600 dark:text-green-400" />
+                        <span>Aprovado</span>
+                      </>
+                    ) : (
+                      <>
+                        <X className="h-3 w-3 shrink-0 text-gray-500 dark:text-zinc-450" />
+                        <span>Pendente</span>
+                      </>
+                    )}
+                  </button>
                 </div>
                 <p className="text-xs text-gray-505 dark:text-zinc-350 italic font-sans leading-relaxed">
                   "{dep.texto}"
@@ -210,15 +135,8 @@ const TestimonialsList: React.FC = () => {
                 </div>
                 <div className="flex gap-1.5 shrink-0">
                   <button
-                    onClick={() => handleEdit(dep)}
-                    className="p-1.5 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-lg text-gray-500 dark:text-zinc-400 transition-colors inline-flex cursor-pointer"
-                    title="Editar Depoimento"
-                  >
-                    <Edit2 className="h-3.5 w-3.5" />
-                  </button>
-                  <button
                     onClick={() => handleDelete(dep.id, dep.nome)}
-                    className="p-1.5 hover:bg-red-55 text-red-500 rounded-lg transition-colors inline-flex cursor-pointer"
+                    className="p-1.5 hover:bg-red-50 dark:hover:bg-red-950/30 text-red-500 rounded-lg transition-colors inline-flex cursor-pointer"
                     title="Excluir Depoimento"
                   >
                     <Trash2 className="h-3.5 w-3.5" />

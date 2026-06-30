@@ -79,6 +79,36 @@ const AVAILABLE_ICONS = [
   { key: 'leaf', label: 'Mata / Área Verde', Icon: Leaf },
 ];
 
+const ESTADOS_BRASIL = [
+  { sigla: 'AC', nome: 'Acre' },
+  { sigla: 'AL', nome: 'Alagoas' },
+  { sigla: 'AM', nome: 'Amazonas' },
+  { sigla: 'AP', nome: 'Amapá' },
+  { sigla: 'BA', nome: 'Bahia' },
+  { sigla: 'CE', nome: 'Ceará' },
+  { sigla: 'DF', nome: 'Distrito Federal' },
+  { sigla: 'ES', nome: 'Espírito Santo' },
+  { sigla: 'GO', nome: 'Goiás' },
+  { sigla: 'MA', nome: 'Maranhão' },
+  { sigla: 'MG', nome: 'Minas Gerais' },
+  { sigla: 'MS', nome: 'Mato Grosso do Sul' },
+  { sigla: 'MT', nome: 'Mato Grosso' },
+  { sigla: 'PA', nome: 'Pará' },
+  { sigla: 'PB', nome: 'Paraíba' },
+  { sigla: 'PE', nome: 'Pernambuco' },
+  { sigla: 'PI', nome: 'Piauí' },
+  { sigla: 'PR', nome: 'Paraná' },
+  { sigla: 'RJ', nome: 'Rio de Janeiro' },
+  { sigla: 'RN', nome: 'Rio Grande do Norte' },
+  { sigla: 'RO', nome: 'Rondônia' },
+  { sigla: 'RR', nome: 'Roraima' },
+  { sigla: 'RS', nome: 'Rio Grande do Sul' },
+  { sigla: 'SC', nome: 'Santa Catarina' },
+  { sigla: 'SE', nome: 'Sergipe' },
+  { sigla: 'SP', nome: 'São Paulo' },
+  { sigla: 'TO', nome: 'Tocantins' }
+];
+
 const PropertyForm: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const isNew = !id;
@@ -116,7 +146,7 @@ const PropertyForm: React.FC = () => {
     if (!trimmed) return;
     const normalizedName = trimmed.toLowerCase();
     if (caracteristicas.some(c => c.split('|')[0].toLowerCase() === normalizedName)) {
-      showToast('Esta característica já foi adicionada.', 'warning');
+      showToast('Esta característica já foi adicionada.', 'info');
       return;
     }
     setCaracteristicas([...caracteristicas, `${trimmed}|${selectedIcon}`]);
@@ -600,15 +630,19 @@ const PropertyForm: React.FC = () => {
                 <label className="block text-xs font-semibold text-gray-600 dark:text-zinc-400 mb-1">
                   Estado *
                 </label>
-                <input
-                  type="text"
+                <select
                   required
-                  maxLength={2}
                   value={estado}
-                  onChange={(e) => setEstado(e.target.value.toUpperCase())}
-                  placeholder="UF (Ex: MT)"
+                  onChange={(e) => setEstado(e.target.value)}
                   className="w-full text-xs rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-850 py-2.5 px-3 focus:outline-none focus:border-primary-medium dark:text-white"
-                />
+                >
+                  <option value="">Selecione...</option>
+                  {ESTADOS_BRASIL.map((est) => (
+                    <option key={est.sigla} value={est.sigla}>
+                      {est.sigla} - {est.nome}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
 
@@ -681,7 +715,7 @@ const PropertyForm: React.FC = () => {
               <label className="block text-xs font-semibold text-gray-600 dark:text-zinc-400">
                 Adicionar Imagens do Imóvel
               </label>
-              <div className="flex flex-col items-center justify-center border-2 border-dashed border-zinc-700/30 rounded-2xl p-6 bg-zinc-800 hover:bg-zinc-950 text-white dark:bg-zinc-850 dark:border-zinc-700 transition-colors relative cursor-pointer group">
+              <div className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 hover:border-primary-medium dark:border-zinc-700 dark:hover:border-primary-light rounded-2xl p-6 bg-gray-50 hover:bg-gray-100/70 dark:bg-zinc-800 dark:hover:bg-zinc-900 text-gray-700 dark:text-zinc-200 transition-colors relative cursor-pointer group">
                 <input
                   type="file"
                   multiple
@@ -690,11 +724,11 @@ const PropertyForm: React.FC = () => {
                   onChange={handleImageUpload}
                   className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
                 />
-                <ImageIcon className="h-8 w-8 text-zinc-400 group-hover:text-primary-light transition-colors mb-2" />
-                <span className="text-xs font-semibold text-zinc-200 dark:text-zinc-300">
+                <ImageIcon className="h-8 w-8 text-gray-400 group-hover:text-primary-medium dark:text-zinc-500 dark:group-hover:text-primary-light transition-colors mb-2" />
+                <span className="text-xs font-semibold text-gray-700 dark:text-zinc-200">
                   {uploading ? 'Enviando imagens...' : 'Clique para selecionar ou arraste imagens'}
                 </span>
-                <span className="text-[10px] text-zinc-400 dark:text-zinc-500 mt-1 text-center font-sans">
+                <span className="text-[10px] text-gray-400 dark:text-zinc-500 mt-1 text-center font-sans">
                   Suporta PNG, JPG, JPEG e WEBP (múltiplas imagens)
                 </span>
               </div>

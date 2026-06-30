@@ -86,6 +86,7 @@ export interface Depoimento {
   nome: string;
   cargo: string;
   texto: string;
+  aprovado: boolean;
   created_at: string;
 }
 

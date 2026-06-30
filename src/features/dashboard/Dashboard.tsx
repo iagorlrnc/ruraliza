@@ -76,7 +76,8 @@ const Dashboard: React.FC = () => {
   const typeData = Object.entries(typeCounts).map(([name, value]) => ({ name, value }));
   const totalTypes = typeData.reduce((sum, item) => sum + item.value, 0);
 
-  const donutColors = ['#2D6A4F', '#40916C', '#52B788', '#74C69D', '#95D5B2', '#D8F3DC'];
+  // Curated brand-harmonious contrasting colors representing nature/rural elements
+  const donutColors = ['#2D6A4F', '#E9C46A', '#2A9D8F', '#E76F51', '#457B9D', '#F4A261'];
   const radius = 50;
   const circumference = 2 * Math.PI * radius; // 314.16
 
@@ -177,8 +178,8 @@ const Dashboard: React.FC = () => {
                       cx="60"
                       cy="60"
                       r={radius}
-                      className="fill-transparent stroke-gray-100 dark:stroke-zinc-800"
-                      strokeWidth="12"
+                      className="fill-transparent stroke-gray-100 dark:stroke-zinc-800/80"
+                      strokeWidth="14"
                     />
                     {donutSlices.map((slice) => (
                       <circle
@@ -186,36 +187,43 @@ const Dashboard: React.FC = () => {
                         cx="60"
                         cy="60"
                         r={radius}
-                        className="fill-transparent transition-all duration-500 hover:stroke-[14px]"
+                        className="fill-transparent transition-all duration-300 hover:stroke-[16px] cursor-pointer"
                         stroke={slice.color}
-                        strokeWidth="12"
+                        strokeWidth="14"
                         strokeDasharray={`${slice.strokeLength} ${circumference}`}
                         strokeDashoffset={slice.strokeOffset}
                         strokeLinecap="round"
-                      />
+                      >
+                        <title>{slice.name}: {slice.value} ({Math.round(slice.percent * 100)}%)</title>
+                      </circle>
                     ))}
                   </svg>
-                  <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    <span className="text-lg font-poppins font-black text-gray-800 dark:text-white">
+                  <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                    <span className="text-xl font-poppins font-black text-gray-800 dark:text-white leading-none">
                       {totalTypes}
                     </span>
-                    <span className="text-[8px] text-gray-400 font-bold uppercase tracking-wider">
-                      Total
+                    <span className="text-[9px] text-gray-400 dark:text-zinc-500 font-bold uppercase tracking-wider mt-0.5">
+                      Imóveis
                     </span>
                   </div>
                 </div>
 
                 {/* Legend */}
-                <div className="space-y-2 text-xs font-medium w-full max-w-[140px]">
+                <div className="space-y-2 text-xs font-medium w-full max-w-[160px]">
                   {donutSlices.map((slice) => (
-                    <div key={slice.name} className="flex items-center justify-between gap-2">
+                    <div key={slice.name} className="flex items-center justify-between gap-2 border-b border-gray-50 dark:border-zinc-800/50 pb-1 last:border-0">
                       <div className="flex items-center gap-2 truncate">
-                        <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: slice.color }}></span>
-                        <span className="text-gray-650 dark:text-zinc-400 truncate">{slice.name}</span>
+                        <span className="h-3 w-3 rounded-full shrink-0 shadow-sm" style={{ backgroundColor: slice.color }}></span>
+                        <span className="text-gray-700 dark:text-zinc-300 font-semibold truncate">{slice.name}</span>
                       </div>
-                      <span className="font-mono text-gray-450 font-semibold">
-                        {slice.value}
-                      </span>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <span className="font-mono text-gray-800 dark:text-zinc-100 font-bold">
+                          {slice.value}
+                        </span>
+                        <span className="font-mono text-[10px] text-gray-400 dark:text-zinc-550 font-semibold">
+                          ({Math.round(slice.percent * 100)}%)
+                        </span>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -246,22 +254,25 @@ const Dashboard: React.FC = () => {
                     const views = prop.visualizacoes || 0;
                     const heightPercent = Math.min(100, Math.max(10, (views / maxViews) * 100));
                     return (
-                      <div key={prop.id} className="flex flex-col items-center group w-full relative">
+                      <div key={prop.id} className="flex flex-col items-center group w-full relative h-full justify-end">
                         {/* Tooltip */}
                         <div className="absolute -top-7 opacity-0 group-hover:opacity-100 transition-opacity bg-zinc-900 dark:bg-zinc-850 text-white text-[9px] font-bold px-2 py-0.5 rounded shadow-md pointer-events-none z-10 whitespace-nowrap font-sans">
                           {views} views
                         </div>
 
-                        {/* Bar */}
-                        <div 
-                          className="w-8 bg-gradient-to-t from-indigo-600 to-indigo-400 group-hover:from-indigo-500 group-hover:to-indigo-300 rounded-t-lg transition-all duration-500 relative"
-                          style={{ height: `${heightPercent}%` }}
-                        >
-                          <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity rounded-t-lg"></div>
+                        {/* Bar Wrapper (provides context for height percentage) */}
+                        <div className="w-full flex-1 flex items-end justify-center relative min-h-[40px]">
+                          {/* Bar */}
+                          <div 
+                            className="w-8 bg-gradient-to-t from-indigo-600 to-indigo-400 group-hover:from-indigo-500 group-hover:to-indigo-300 rounded-t-lg transition-all duration-500 relative"
+                            style={{ height: `${heightPercent}%` }}
+                          >
+                            <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity rounded-t-lg"></div>
+                          </div>
                         </div>
 
                         {/* Code label */}
-                        <span className="text-[9px] text-gray-500 dark:text-zinc-400 font-bold tracking-wider uppercase mt-2 block font-sans">
+                        <span className="text-[9px] text-gray-500 dark:text-zinc-400 font-bold tracking-wider uppercase mt-2 block font-sans shrink-0">
                           {prop.codigo}
                         </span>
                       </div>
