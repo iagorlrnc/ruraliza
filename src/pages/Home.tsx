@@ -6,6 +6,7 @@ import { api } from '../services/api';
 import { useToast } from '../contexts/ToastContext';
 import { useSEO } from '../hooks/useSEO';
 import { formatCurrency, formatArea } from '../utils/format';
+import { ESTADOS_BRASIL } from '../utils/estados';
 import { 
   Search, 
   MapPin, 
@@ -32,6 +33,8 @@ const Home: React.FC = () => {
   const [email, setEmail] = useState('');
   const [telefone, setTelefone] = useState('');
   const [mensagem, setMensagem] = useState('');
+  const [cidade, setCidade] = useState('');
+  const [estado, setEstado] = useState('');
 
   // Evaluation Form State
   const [evalNome, setEvalNome] = useState('');
@@ -205,6 +208,8 @@ const Home: React.FC = () => {
       setEmail('');
       setTelefone('');
       setMensagem('');
+      setCidade('');
+      setEstado('');
     },
     onError: () => {
       showToast('Ocorreu um erro ao enviar a mensagem. Tente novamente.', 'error');
@@ -213,8 +218,8 @@ const Home: React.FC = () => {
 
   const handleContactSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!nome || !email || !mensagem) {
-      showToast('Por favor, preencha os campos obrigatórios.', 'error');
+    if (!nome || !email || !mensagem || !cidade || !estado) {
+      showToast('Por favor, preencha os campos obrigatórios (Nome, E-mail, Cidade, Estado e Mensagem).', 'error');
       return;
     }
     messageMutation.mutate({
@@ -222,18 +227,75 @@ const Home: React.FC = () => {
       email,
       telefone,
       assunto: 'Contato Geral via Site',
-      mensagem
+      mensagem,
+      cidade: `${cidade} - ${estado.toUpperCase()}`
     });
   };
 
-  const categories = [
-    { name: 'Fazendas', type: 'Fazenda', image: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=400&q=80', count: properties.filter(p => p.tipo === 'Fazenda').length },
-    { name: 'Chácaras', type: 'Chácara', image: 'https://images.unsplash.com/photo-1500076656116-558758c991c1?auto=format&fit=crop&w=400&q=80', count: properties.filter(p => p.tipo === 'Chácara').length },
-    { name: 'Sítios', type: 'Sítio', image: 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=400&q=80', count: properties.filter(p => p.tipo === 'Sítio').length },
-    { name: 'Ranchos', type: 'Rancho', image: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=400&q=80', count: properties.filter(p => p.tipo === 'Rancho').length },
-    { name: 'Terrenos Rurais', type: 'Terreno Rural', image: 'https://images.unsplash.com/photo-1500937386664-56d1dfef3854?auto=format&fit=crop&w=400&q=80', count: properties.filter(p => p.tipo === 'Terreno Rural').length },
-    { name: 'Áreas Agrícolas', type: 'Área Agrícola', image: 'https://images.unsplash.com/photo-1516253593875-bd7ba052fbc5?auto=format&fit=crop&w=400&q=80', count: properties.filter(p => p.tipo === 'Área Agrícola').length }
-  ];
+  // Fetch categories
+  const { data: dbCategories = [] } = useQuery({
+    queryKey: ['categories'],
+    queryFn: api.getCategories
+  });
+
+  const categories = dbCategories.map(cat => ({
+    name: cat.nome,
+    type: cat.tipo,
+    image: cat.imagem || '/imagesub.png',
+    count: properties.filter(p => p.tipo === cat.tipo).length
+  }));
+
+  // Carousel states for Categories
+  const [categoriesIndex, setCategoriesIndex] = useState(0);
+  const [catItemsPerView, setCatItemsPerView] = useState(5);
+
+  const handlePrevCat = () => {
+    setCategoriesIndex((prev) => {
+      const maxIndex = Math.max(0, categories.length - catItemsPerView);
+      return prev <= 0 ? maxIndex : prev - 1;
+    });
+  };
+
+  const handleNextCat = () => {
+    setCategoriesIndex((prev) => {
+      const maxIndex = Math.max(0, categories.length - catItemsPerView);
+      return prev >= maxIndex ? 0 : prev + 1;
+    });
+  };
+
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth < 640) {
+        setCatItemsPerView(1);
+      } else if (window.innerWidth < 1024) {
+        setCatItemsPerView(3);
+      } else {
+        setCatItemsPerView(5);
+      }
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  useEffect(() => {
+    const maxIndex = Math.max(0, categories.length - catItemsPerView);
+    if (categoriesIndex > maxIndex) {
+      setCategoriesIndex(maxIndex);
+    }
+  }, [catItemsPerView, categories.length, categoriesIndex]);
+
+  // Autoplay for categories
+  useEffect(() => {
+    if (categories.length <= catItemsPerView) return;
+    const maxIndex = categories.length - catItemsPerView;
+    const interval = setInterval(() => {
+      setCategoriesIndex((prev) => {
+        return prev >= maxIndex ? 0 : prev + 1;
+      });
+    }, 6000);
+    return () => clearInterval(interval);
+  }, [categories.length, catItemsPerView]);
 
   return (
     <div className="space-y-20 pb-20 overflow-x-hidden">
@@ -464,35 +526,91 @@ const Home: React.FC = () => {
             </p>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
-            {categories.map((cat, idx) => (
-              <motion.div
-                key={cat.type}
-                initial={{ opacity: 0, scale: 0.9 }}
-                whileInView={{ opacity: 1, scale: 1 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.4, delay: idx * 0.05 }}
-                onClick={() => navigate(`/imoveis?tipo=${encodeURIComponent(cat.type)}`)}
-                className="group relative h-40 rounded-xl overflow-hidden cursor-pointer shadow-md"
-              >
-                <img
-                  src={cat.image}
-                  alt={cat.name}
-                  className="w-full h-full object-cover opacity-60 transition-transform duration-500 group-hover:scale-110"
-                  data-no-protect
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-gray-950 via-gray-950/20 to-transparent"></div>
-                <div className="absolute bottom-3 left-3 text-left">
-                  <h3 className="font-poppins text-xs font-bold text-white group-hover:text-primary-light transition-colors">
-                    {cat.name}
-                  </h3>
-                  <span className="text-[9px] text-brand-beige-dark/80 font-sans block">
-                    {cat.count} {cat.count === 1 ? 'imóvel' : 'imóveis'}
-                  </span>
+          {categories.length === 0 ? (
+            <div className="text-center py-8 border border-white/10 rounded-2xl bg-white/[0.02] backdrop-blur-[2px]">
+              <p className="text-xs text-brand-beige-dark/60 font-medium">Nenhuma categoria cadastrada no momento.</p>
+            </div>
+          ) : (
+            <div className="relative w-full py-2">
+              {/* Arrow Navigation Buttons */}
+              {categories.length > catItemsPerView && (
+                <>
+                  <button
+                    onClick={handlePrevCat}
+                    className="absolute left-[-16px] lg:left-[-48px] top-1/2 -translate-y-1/2 bg-white/10 dark:bg-zinc-800/60 hover:bg-white/20 dark:hover:bg-zinc-700/80 text-white rounded-full p-2.5 border border-white/10 shadow-md hover:shadow-lg transition-all z-10 cursor-pointer flex items-center justify-center backdrop-blur-sm"
+                    aria-label="Anterior"
+                  >
+                    <ChevronLeft className="h-5 w-5" />
+                  </button>
+                  <button
+                    onClick={handleNextCat}
+                    className="absolute right-[-16px] lg:right-[-48px] top-1/2 -translate-y-1/2 bg-white/10 dark:bg-zinc-800/60 hover:bg-white/20 dark:hover:bg-zinc-700/80 text-white rounded-full p-2.5 border border-white/10 shadow-md hover:shadow-lg transition-all z-10 cursor-pointer flex items-center justify-center backdrop-blur-sm"
+                    aria-label="Próximo"
+                  >
+                    <ChevronRight className="h-5 w-5" />
+                  </button>
+                </>
+              )}
+
+              <div className="overflow-hidden w-full">
+                <div 
+                  className="flex transition-transform duration-500 ease-in-out gap-4"
+                  style={{ 
+                    transform: `translateX(calc(-1 * (${categoriesIndex} * (100% / ${catItemsPerView}) + ${categoriesIndex} * 16px)))` 
+                  }}
+                >
+                  {categories.map((cat, idx) => (
+                    <motion.div
+                      key={cat.type}
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      whileInView={{ opacity: 1, scale: 1 }}
+                      viewport={{ once: true }}
+                      transition={{ duration: 0.4, delay: idx * 0.05 }}
+                      onClick={() => navigate(`/imoveis?tipo=${encodeURIComponent(cat.name)}`)}
+                      className="group relative h-40 rounded-xl overflow-hidden cursor-pointer shadow-md shrink-0 text-left"
+                      style={{
+                        width: `calc((100% - ${(catItemsPerView - 1) * 16}px) / ${catItemsPerView})`
+                      }}
+                    >
+                      <img
+                        src={cat.image}
+                        alt={cat.name}
+                        className="w-full h-full object-cover opacity-60 transition-transform duration-500 group-hover:scale-110"
+                        data-no-protect
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-gray-950 via-gray-950/20 to-transparent"></div>
+                      <div className="absolute bottom-3 left-3 text-left">
+                        <h3 className="font-poppins text-xs font-bold text-white group-hover:text-primary-light transition-colors">
+                          {cat.name}
+                        </h3>
+                        <span className="text-[9px] text-brand-beige-dark/80 font-sans block">
+                          {cat.count} {cat.count === 1 ? 'imóvel' : 'imóveis'}
+                        </span>
+                      </div>
+                    </motion.div>
+                  ))}
                 </div>
-              </motion.div>
-            ))}
-          </div>
+              </div>
+
+              {/* Dots navigation indicator */}
+              {categories.length > catItemsPerView && (
+                <div className="flex justify-center gap-1.5 pt-4">
+                  {Array.from({ length: categories.length - catItemsPerView + 1 }).map((_, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setCategoriesIndex(i)}
+                      className={`h-1.5 rounded-full transition-all duration-300 cursor-pointer ${
+                        categoriesIndex === i 
+                          ? 'w-6 bg-primary-light' 
+                          : 'w-1.5 bg-white/30 hover:bg-white/50'
+                      }`}
+                      aria-label={`Ir para slide ${i + 1}`}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </section>
 
@@ -724,6 +842,40 @@ const Home: React.FC = () => {
                     placeholder="(18) 99999-9999"
                     className="w-full text-xs rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-850 py-2.5 px-3 focus:outline-none focus:border-primary-medium dark:text-white"
                   />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 dark:text-zinc-400 mb-1">
+                    Cidade *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={cidade}
+                    onChange={(e) => setCidade(e.target.value)}
+                    placeholder="Ex: Sorriso"
+                    className="w-full text-xs rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-850 py-2.5 px-3 focus:outline-none focus:border-primary-medium dark:text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 dark:text-zinc-400 mb-1">
+                    Estado *
+                  </label>
+                  <select
+                    required
+                    value={estado}
+                    onChange={(e) => setEstado(e.target.value)}
+                    className="w-full text-xs rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-850 py-2.5 px-3 focus:outline-none focus:border-primary-medium dark:text-white"
+                  >
+                    <option value="">Selecione...</option>
+                    {ESTADOS_BRASIL.map((est) => (
+                      <option key={est.sigla} value={est.sigla}>
+                        {est.sigla} - {est.nome}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
 

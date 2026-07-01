@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 
 const AdminLayout: React.FC = () => {
-  const { user, loading, logout, isAdmin } = useAuth();
+  const { user, loading, logout, isAdmin, isCorretor } = useAuth();
   const { showToast } = useToast();
   const location = useLocation();
   const navigate = useNavigate();
@@ -61,8 +61,8 @@ const AdminLayout: React.FC = () => {
   }
 
   // Route guarding
-  if (!user || !isAdmin) {
-    // If not logged in or not admin, redirect to admin login
+  if (!user || (!isAdmin && !isCorretor)) {
+    // If not logged in or not admin/corretor, redirect to admin login
     return <Navigate to="/login" replace />;
   }
 
@@ -70,10 +70,11 @@ const AdminLayout: React.FC = () => {
     { name: 'Dashboard', path: '/', icon: LayoutDashboard },
     { name: 'Gestão de Imóveis', path: '/imoveis', icon: Home },
     { name: 'Mensagens Recebidas', path: '/mensagens', icon: MessageSquare },
-    { name: 'Usuários (CRM)', path: '/usuarios', icon: Users },
+    { name: 'Clientes (CRM)', path: '/clientes', icon: Users },
+    ...(isAdmin ? [{ name: 'Gestão de Usuários', path: '/gestao-usuarios', icon: UserCheck }] : []),
     { name: 'Gestão de Vendedores', path: '/vendedores', icon: UserCheck },
     { name: 'Depoimentos', path: '/depoimentos', icon: MessageCircle },
-    { name: 'Configurações', path: '/configuracoes', icon: Sliders }
+    ...(isAdmin ? [{ name: 'Configurações', path: '/configuracoes', icon: Sliders }] : [])
   ];
 
   const isActive = (path: string) => {

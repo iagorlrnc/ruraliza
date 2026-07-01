@@ -4,6 +4,7 @@ import { Menu, X, MapPin, Phone, Mail, Sun, Moon } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { useTheme } from '../contexts/ThemeContext';
 import { api } from '../services/api';
+import CookieConsent from '../components/CookieConsent';
 
 // Custom SVG Icons to avoid lucide-react version compatibility issues
 const Facebook = (props: React.SVGProps<SVGSVGElement>) => (
@@ -63,7 +64,7 @@ const PublicLayout: React.FC = () => {
     // Prevent copying content
     const handleCopy = (e: ClipboardEvent) => {
       e.preventDefault();
-      e.clipboardData?.setData('text/plain', 'Conteúdo Protegido pela Ruraliza Negócios Rurais');
+      e.clipboardData?.setData('text/plain', 'Conteúdo Protegido pela Ruraliza Negócios');
     };
     document.addEventListener('copy', handleCopy);
 
@@ -78,7 +79,7 @@ const PublicLayout: React.FC = () => {
       if (e.key === 'PrintScreen' || e.keyCode === 44) {
         setShowWatermark(true);
         try {
-          navigator.clipboard.writeText('Conteúdo Protegido pela Ruraliza Negócios Rurais');
+          navigator.clipboard.writeText('Conteúdo Protegido pela Ruraliza Negócios');
         } catch {}
       }
 
@@ -89,7 +90,7 @@ const PublicLayout: React.FC = () => {
       ) {
         setShowWatermark(true);
         try {
-          navigator.clipboard.writeText('Conteúdo Protegido pela Ruraliza Negócios Rurais');
+          navigator.clipboard.writeText('Conteúdo Protegido pela Ruraliza Negócios');
         } catch {}
       }
     };
@@ -98,7 +99,7 @@ const PublicLayout: React.FC = () => {
       if (e.key === 'PrintScreen' || e.keyCode === 44) {
         setShowWatermark(true);
         try {
-          navigator.clipboard.writeText('Conteúdo Protegido pela Ruraliza Negócios Rurais');
+          navigator.clipboard.writeText('Conteúdo Protegido pela Ruraliza Negócios');
         } catch {}
       }
     };
@@ -110,7 +111,7 @@ const PublicLayout: React.FC = () => {
     const handleBlur = () => {
       setShowWatermark(true);
       try {
-        navigator.clipboard.writeText('Conteúdo Protegido pela Ruraliza Negócios Rurais');
+        navigator.clipboard.writeText('Conteúdo Protegido pela Ruraliza Negócios');
       } catch {}
     };
     const handleFocus = () => {
@@ -353,8 +354,19 @@ const PublicLayout: React.FC = () => {
             </div>
           </div>
 
-          <div className="mt-12 border-t border-primary-medium/10 pt-6 text-center text-xs text-brand-beige-dark/50">
-            &copy; {new Date().getFullYear()} Ruraliza Negócios. Todos os direitos reservados.
+          <div className="mt-12 border-t border-primary-medium/10 pt-6 text-center text-xs text-brand-beige-dark/50 flex flex-col sm:flex-row justify-center items-center gap-2 sm:gap-4">
+            <span>&copy; {new Date().getFullYear()} Ruraliza Negócios. Todos os direitos reservados.</span>
+            <span className="hidden sm:inline text-brand-beige-dark/20">|</span>
+            <Link to="/politica-de-privacidade" className="hover:text-primary-medium transition-colors font-medium">
+              Política de Privacidade
+            </Link>
+            <span className="hidden sm:inline text-brand-beige-dark/20">|</span>
+            <button
+              onClick={() => window.dispatchEvent(new Event('open-cookie-settings'))}
+              className="hover:text-primary-medium transition-colors cursor-pointer font-medium"
+            >
+              Preferências de Cookies
+            </button>
           </div>
         </div>
       </footer>
@@ -411,6 +423,7 @@ const PublicLayout: React.FC = () => {
           opacity: 0.85;
         }
       `}</style>
+      <CookieConsent />
     </div>
   );
 };

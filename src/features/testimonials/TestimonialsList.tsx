@@ -2,11 +2,13 @@ import React from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../services/api';
 import { useToast } from '../../contexts/ToastContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { Trash2, MessageSquareQuote, Check, X } from 'lucide-react';
 import { Depoimento } from '../../types';
 
 const TestimonialsList: React.FC = () => {
   const { showToast } = useToast();
+  const { isAdmin } = useAuth();
   const queryClient = useQueryClient();
 
   // Fetch testimonials (both approved and pending for the admin panel)
@@ -98,13 +100,15 @@ const TestimonialsList: React.FC = () => {
                   {/* Status Toggle Button (Aprovar / Desaprovar) */}
                   <button
                     onClick={() => handleToggleApproval(dep)}
-                    disabled={toggleApprovalMutation.isPending}
-                    className={`px-2.5 py-1 text-[10px] font-bold rounded-lg border transition-all flex items-center gap-1 cursor-pointer ${
+                    disabled={!isAdmin || toggleApprovalMutation.isPending}
+                    className={`px-2.5 py-1 text-[10px] font-bold rounded-lg border transition-all flex items-center gap-1 ${
+                      !isAdmin ? 'cursor-not-allowed opacity-80' : 'cursor-pointer'
+                    } ${
                       dep.aprovado
                         ? 'border-green-200 dark:border-green-900/60 bg-green-50 dark:bg-green-950/30 text-green-600 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/40'
                         : 'border-gray-250 dark:border-zinc-850 bg-gray-50 dark:bg-zinc-800 text-gray-500 dark:text-zinc-400 hover:bg-gray-100 dark:hover:bg-zinc-700'
                     }`}
-                    title={dep.aprovado ? 'Clique para desaprovar e ocultar' : 'Clique para aprovar e tornar público'}
+                    title={!isAdmin ? 'Apenas administradores podem gerenciar depoimentos' : dep.aprovado ? 'Clique para desaprovar e ocultar' : 'Clique para aprovar e tornar público'}
                   >
                     {dep.aprovado ? (
                       <>
@@ -133,15 +137,17 @@ const TestimonialsList: React.FC = () => {
                     {dep.cargo}
                   </span>
                 </div>
-                <div className="flex gap-1.5 shrink-0">
-                  <button
-                    onClick={() => handleDelete(dep.id, dep.nome)}
-                    className="p-1.5 hover:bg-red-50 dark:hover:bg-red-950/30 text-red-500 rounded-lg transition-colors inline-flex cursor-pointer"
-                    title="Excluir Depoimento"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
-                </div>
+                {isAdmin && (
+                  <div className="flex gap-1.5 shrink-0">
+                    <button
+                      onClick={() => handleDelete(dep.id, dep.nome)}
+                      className="p-1.5 hover:bg-red-50 dark:hover:bg-red-950/30 text-red-500 rounded-lg transition-colors inline-flex cursor-pointer"
+                      title="Excluir Depoimento"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           ))}

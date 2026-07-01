@@ -4,11 +4,13 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../services/api';
 import { formatCurrency, formatArea } from '../../utils/format';
 import { useToast } from '../../contexts/ToastContext';
-import { Plus, Edit2, Trash2, Search, Star, Eye } from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
+import { Plus, Edit2, Trash2, Search, Star, Eye, Tag } from 'lucide-react';
 
 const PropertiesList: React.FC = () => {
   const navigate = useNavigate();
   const { showToast } = useToast();
+  const { isAdmin } = useAuth();
   const queryClient = useQueryClient();
   const [busca, setBusca] = useState('');
 
@@ -55,12 +57,22 @@ const PropertiesList: React.FC = () => {
           <h2 className="font-poppins text-lg font-bold text-gray-800 dark:text-white">Gestão de Imóveis</h2>
           <p className="text-xs text-gray-500 dark:text-zinc-400 mt-0.5">Cadastre, edite e organize o catálogo de propriedades rurais.</p>
         </div>
-        <Link
-          to="/imoveis/novo"
-          className="rounded-xl bg-primary-dark hover:bg-primary-medium text-brand-beige py-2.5 px-4 text-xs font-bold transition-colors flex items-center gap-1.5 shadow-md shadow-primary-dark/10"
-        >
-          <Plus className="h-4 w-4" /> Novo Imóvel
-        </Link>
+        {isAdmin && (
+          <div className="flex gap-2">
+            <Link
+              to="/imoveis/categorias"
+              className="rounded-xl border border-gray-200 dark:border-zinc-800 hover:bg-gray-50 dark:hover:bg-zinc-800 text-gray-700 dark:text-zinc-300 py-2.5 px-4 text-xs font-bold transition-colors flex items-center gap-1.5 shadow-sm cursor-pointer"
+            >
+              <Tag className="h-4 w-4" /> Categorias
+            </Link>
+            <Link
+              to="/imoveis/novo"
+              className="rounded-xl bg-primary-dark hover:bg-primary-medium text-brand-beige py-2.5 px-4 text-xs font-bold transition-colors flex items-center gap-1.5 shadow-md shadow-primary-dark/10 cursor-pointer"
+            >
+              <Plus className="h-4 w-4" /> Novo Imóvel
+            </Link>
+          </div>
+        )}
       </div>
 
       {/* Search Input bar */}
@@ -100,7 +112,7 @@ const PropertiesList: React.FC = () => {
                   <th className="px-6 py-4">Valor</th>
                   <th className="px-6 py-4 text-center">Destaque</th>
                   <th className="px-6 py-4">Status</th>
-                  <th className="px-6 py-4 text-right">Ações</th>
+                  {isAdmin && <th className="px-6 py-4 text-right">Ações</th>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-zinc-800 font-sans">
@@ -145,22 +157,24 @@ const PropertiesList: React.FC = () => {
                         {prop.status}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-right whitespace-nowrap space-x-1.5">
-                      <button
-                        onClick={() => navigate(`/imoveis/editar/${prop.id}`)}
-                        className="p-1.5 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-lg text-gray-600 dark:text-zinc-350 transition-colors inline-flex items-center cursor-pointer"
-                        title="Editar Imóvel"
-                      >
-                        <Edit2 className="h-3.5 w-3.5" />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(prop.id, prop.codigo)}
-                        className="p-1.5 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-lg text-red-600 transition-colors inline-flex items-center cursor-pointer"
-                        title="Excluir Imóvel"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
-                    </td>
+                    {isAdmin && (
+                      <td className="px-6 py-4 text-right whitespace-nowrap space-x-1.5">
+                        <button
+                          onClick={() => navigate(`/imoveis/editar/${prop.id}`)}
+                          className="p-1.5 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-lg text-gray-600 dark:text-zinc-350 transition-colors inline-flex items-center cursor-pointer"
+                          title="Editar Imóvel"
+                        >
+                          <Edit2 className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(prop.id, prop.codigo)}
+                          className="p-1.5 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-lg text-red-600 transition-colors inline-flex items-center cursor-pointer"
+                          title="Excluir Imóvel"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>

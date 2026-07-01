@@ -10,7 +10,8 @@ import {
   StatusMensagem, 
   StatusVisita,
   Configuracoes,
-  Vendedor
+  Vendedor,
+  Categoria
 } from '../types';
 
 // Detect if Supabase is fully configured
@@ -286,7 +287,7 @@ export const api = {
       .eq('email', emailLower)
       .maybeSingle();
 
-    const userPayload = {
+    const userPayload: any = {
       nome: user.nome,
       telefone: user.telefone,
       cidade: user.cidade,
@@ -303,19 +304,60 @@ export const api = {
         .select()
         .single();
       if (error) throw error;
+
+      // Se a senha foi fornecida e o usuário não é um cliente, atualiza no Supabase Auth via RPC
+      if (user.senha && existing.perfil !== 'Cliente') {
+        const { error: pwdError } = await supabase.rpc('admin_alterar_senha_usuario', {
+          p_usuario_id: existing.id,
+          p_nova_senha: user.senha
+        });
+        if (pwdError) throw pwdError;
+      }
+
       return data;
     } else {
-      const { data, error } = await supabase
-        .from('tabela_usuarios')
-        .insert([{
-          id: user.id, // optional predefined UUID
+      if (user.perfil === 'Cliente') {
+        // Clientes não possuem conta no Supabase Auth, apenas registro na tabela pública
+        const insertPayload = {
           email: emailLower,
           ...userPayload
-        }])
-        .select()
-        .single();
-      if (error) throw error;
-      return data;
+        };
+        if (user.id) {
+          insertPayload.id = user.id;
+        }
+        
+        const { data, error } = await supabase
+          .from('tabela_usuarios')
+          .insert([insertPayload])
+          .select()
+          .single();
+        if (error) throw error;
+        return data;
+      } else {
+        // Usuário de Painel (Administrador/Corretor): cria no Supabase Auth + tabela pública via RPC seguro
+        const senhaFornecida = user.senha || 'ruraliza123';
+        
+        const { data: newId, error: createError } = await supabase.rpc('admin_criar_usuario', {
+          p_nome: user.nome,
+          p_email: emailLower,
+          p_telefone: user.telefone || null,
+          p_cidade: user.cidade || null,
+          p_perfil: user.perfil || 'Corretor',
+          p_status: user.status || 'Pendente',
+          p_senha: senhaFornecida
+        });
+        
+        if (createError) throw createError;
+
+        const { data, error } = await supabase
+          .from('tabela_usuarios')
+          .select('*')
+          .eq('id', newId)
+          .single();
+
+        if (error) throw error;
+        return data;
+      }
     }
   },
 
@@ -327,10 +369,17 @@ export const api = {
 
     const { data, error } = await supabase
       .from('tabela_mensagens')
-      .select('*, tabela_usuarios(*), tabela_imoveis(*)')
+      .select('*, tabela_usuarios:tabela_usuarios!usuario_id(*), tabela_imoveis(*)')
       .order('created_at', { ascending: false });
 
     if (error) throw error;
+
+    let users: Usuario[] = [];
+    try {
+      users = await api.getUsers();
+    } catch (e) {
+      console.warn("Failed to load users for message assignment:", e);
+    }
 
     return (data || []).map((row: any) => ({
       id: row.id,
@@ -343,6 +392,8 @@ export const api = {
       mensagem: row.mensagem,
       status: row.status,
       observacao_interna: row.observacao_interna,
+      atribuido_a_id: row.atribuido_a_id,
+      atribuido_a: row.atribuido_a_id ? users.find(u => u.id === row.atribuido_a_id) : undefined,
       created_at: row.created_at,
       usuario: row.tabela_usuarios ? {
         id: row.tabela_usuarios.id,
@@ -381,6 +432,7 @@ export const api = {
     assunto: string;
     mensagem: string;
     imovel_id?: string;
+    cidade?: string;
   }): Promise<string> => {
     if (!isSupabaseConfigured()) {
       const res = mockDb.registrarInteracaoCliente(payload);
@@ -394,24 +446,31 @@ export const api = {
       p_telefone: payload.telefone || null,
       p_assunto: payload.assunto,
       p_mensagem: payload.mensagem,
-      p_imovel_id: payload.imovel_id || null
+      p_imovel_id: payload.imovel_id || null,
+      p_cidade: payload.cidade || null
     });
 
     if (error) throw error;
     return data; // returns the generated user id, message id is generated in db
   },
 
-  updateMessageStatus: async (id: string, status: StatusMensagem, observacao?: string): Promise<boolean> => {
+  updateMessageStatus: async (id: string, status: StatusMensagem, observacao?: string, atribuidoAId?: string | null): Promise<boolean> => {
     if (!isSupabaseConfigured()) {
-      return mockDb.updateMessageStatus(id, status, observacao);
+      return mockDb.updateMessageStatus(id, status, observacao, atribuidoAId);
+    }
+
+    const payload: any = { 
+      status, 
+      observacao_interna: observacao 
+    };
+
+    if (atribuidoAId !== undefined) {
+      payload.atribuido_a_id = atribuidoAId;
     }
 
     const { error } = await supabase
       .from('tabela_mensagens')
-      .update({ 
-        status, 
-        observacao_interna: observacao 
-      })
+      .update(payload)
       .eq('id', id);
 
     if (error) throw error;
@@ -451,6 +510,7 @@ export const api = {
     imovel_id: string;
     data_solicitada: string;
     observacoes?: string;
+    cidade?: string;
   }): Promise<string> => {
     if (!isSupabaseConfigured()) {
       const res = mockDb.registrarSolicitacaoVisita(payload);
@@ -463,7 +523,8 @@ export const api = {
       p_telefone: payload.telefone || null,
       p_imovel_id: payload.imovel_id,
       p_data_solicitada: payload.data_solicitada,
-      p_observacoes: payload.observacoes || null
+      p_observacoes: payload.observacoes || null,
+      p_cidade: payload.cidade || null
     });
 
     if (error) throw error;
@@ -585,7 +646,7 @@ export const api = {
         supabase.from('tabela_imoveis').select('id', { count: 'exact', head: true }).eq('modalidade', 'Aluguel').neq('status', 'Excluido'),
         supabase.from('tabela_usuarios').select('id', { count: 'exact', head: true }),
         supabase.from('tabela_usuarios').select('id', { count: 'exact', head: true }).eq('perfil', 'Cliente'),
-        supabase.from('tabela_usuarios').select('id', { count: 'exact', head: true }).eq('perfil', 'Administrador'),
+        supabase.from('tabela_usuarios').select('id', { count: 'exact', head: true }).in('perfil', ['Administrador', 'Corretor']),
         supabase.from('tabela_mensagens').select('id', { count: 'exact', head: true }),
         supabase.from('tabela_mensagens').select('id', { count: 'exact', head: true }).in('status', ['Nova', 'Em andamento']),
         supabase.from('tabela_solicitacoes_visita').select('id', { count: 'exact', head: true }),
@@ -739,7 +800,19 @@ export const api = {
       return URL.createObjectURL(file);
     }
 
-    const fileExt = file.name.split('.').pop();
+    // Validação de tipo de arquivo (Apenas imagens permitidas)
+    const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+    if (!allowedMimeTypes.includes(file.type)) {
+      throw new Error('Tipo de arquivo não permitido. Apenas imagens (JPEG, PNG, WEBP, GIF) são aceitas.');
+    }
+
+    // Validação de tamanho máximo (10MB)
+    const maxSize = 10 * 1024 * 1024;
+    if (file.size > maxSize) {
+      throw new Error('O arquivo excede o limite máximo de tamanho de 10MB.');
+    }
+
+    const fileExt = file.name.split('.').pop() || 'jpg';
     const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
     const filePath = `${fileName}`;
 
@@ -757,5 +830,66 @@ export const api = {
       .getPublicUrl(filePath);
 
     return publicUrlData.publicUrl;
+  },
+
+  // --- CATEGORIES ---
+  getCategories: async (): Promise<Categoria[]> => {
+    if (!isSupabaseConfigured()) {
+      return mockDb.getCategories();
+    }
+    const { data, error } = await supabase
+      .from('tabela_categorias')
+      .select('*')
+      .order('nome', { ascending: true });
+
+    if (error) {
+      console.error('Error fetching categories from Supabase:', error);
+      throw error;
+    }
+    return data || [];
+  },
+
+  saveCategory: async (category: Partial<Categoria> & { nome: string; tipo: string }): Promise<Categoria> => {
+    if (!isSupabaseConfigured()) {
+      return mockDb.saveCategory(category);
+    }
+    const payload = {
+      nome: category.nome,
+      tipo: category.tipo,
+      imagem: category.imagem || null,
+      updated_at: new Date().toISOString()
+    };
+
+    if (category.id) {
+      const { data, error } = await supabase
+        .from('tabela_categorias')
+        .update(payload)
+        .eq('id', category.id)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    } else {
+      const { data, error } = await supabase
+        .from('tabela_categorias')
+        .insert([payload])
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    }
+  },
+
+  deleteCategory: async (id: string): Promise<boolean> => {
+    if (!isSupabaseConfigured()) {
+      return mockDb.deleteCategory(id);
+    }
+    const { error } = await supabase
+      .from('tabela_categorias')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
+    return true;
   }
 };

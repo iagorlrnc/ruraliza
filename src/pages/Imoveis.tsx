@@ -34,6 +34,11 @@ const Imoveis: React.FC = () => {
     setAreaMax(searchParams.get('areaMax') || '');
   }, [searchParams]);
 
+  const { data: categories = [] } = useQuery({
+    queryKey: ['categories'],
+    queryFn: api.getCategories
+  });
+
   const { data: properties = [], isLoading } = useQuery({
     queryKey: ['properties'],
     queryFn: api.getProperties
@@ -53,7 +58,16 @@ const Imoveis: React.FC = () => {
     }
 
     // 3. Type
-    if (tipo && prop.tipo !== tipo) return false;
+    if (tipo) {
+      const matchedCategory = categories.find(
+        (c) => c.nome.toLowerCase() === tipo.toLowerCase() || c.tipo.toLowerCase() === tipo.toLowerCase()
+      );
+      if (matchedCategory) {
+        if (prop.tipo.toLowerCase() !== matchedCategory.tipo.toLowerCase()) return false;
+      } else {
+        if (prop.tipo.toLowerCase() !== tipo.toLowerCase()) return false;
+      }
+    }
 
     // 4. Modalidade (Venda/Aluguel)
     if (modalidade && prop.modalidade !== modalidade) return false;
@@ -101,7 +115,8 @@ const Imoveis: React.FC = () => {
   const uniqueCities = Array.from(new Set(properties.map(p => p.cidade))).filter(Boolean);
   const uniqueStates = Array.from(new Set(properties.map(p => p.estado))).filter(Boolean);
 
-  const applyFilters = () => {
+  // Synchronize state changes to URL query parameters automatically
+  useEffect(() => {
     const params: any = {};
     if (busca) params.busca = busca;
     if (tipo) params.tipo = tipo;
@@ -112,8 +127,17 @@ const Imoveis: React.FC = () => {
     if (precoMax) params.precoMax = precoMax;
     if (areaMin) params.areaMin = areaMin;
     if (areaMax) params.areaMax = areaMax;
-    setSearchParams(params);
-  };
+
+    const currentParamsObj: any = {};
+    searchParams.forEach((value, key) => {
+      currentParamsObj[key] = value;
+    });
+
+    const isDifferent = JSON.stringify(params) !== JSON.stringify(currentParamsObj);
+    if (isDifferent) {
+      setSearchParams(params);
+    }
+  }, [busca, tipo, modalidade, cidade, estado, precoMin, precoMax, areaMin, areaMax, setSearchParams, searchParams]);
 
   const clearFilters = () => {
     setBusca('');
@@ -186,12 +210,11 @@ const Imoveis: React.FC = () => {
                 className="w-full text-xs rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-850 py-2.5 px-3 focus:outline-none dark:text-white"
               >
                 <option value="">Todos os tipos</option>
-                <option value="Chácara">Chácara</option>
-                <option value="Fazenda">Fazenda</option>
-                <option value="Sítio">Sítio</option>
-                <option value="Rancho">Rancho</option>
-                <option value="Terreno Rural">Terreno Rural</option>
-                <option value="Área Agrícola">Área Agrícola</option>
+                {categories.map((cat) => (
+                  <option key={cat.id} value={cat.nome}>
+                    {cat.nome}
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -288,12 +311,7 @@ const Imoveis: React.FC = () => {
             </div>
           </div>
 
-          <button
-            onClick={applyFilters}
-            className="w-full rounded-xl bg-primary-dark hover:bg-primary-medium text-white py-2.5 text-xs font-bold transition-colors cursor-pointer shadow-md text-center"
-          >
-            Aplicar Filtros
-          </button>
+
         </aside>
 
         {/* Properties Catalog Grid */}

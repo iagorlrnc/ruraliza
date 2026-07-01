@@ -3,7 +3,8 @@ import { useNavigate, useParams, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../services/api';
 import { useToast } from '../../contexts/ToastContext';
-import { Imovel, ImagemImovel, TipoImovel, ModalidadeImovel, StatusImovel } from '../../types';
+import { useAuth } from '../../contexts/AuthContext';
+import { Imovel, ImagemImovel, ModalidadeImovel, StatusImovel } from '../../types';
 import { 
   ArrowLeft, Save, Trash2, Image as ImageIcon, ArrowUp, ArrowDown, Plus, X,
   Home as HomeIcon, Zap, Droplets, Fence, Trees, Sprout, ShieldCheck, Lock,
@@ -11,16 +12,15 @@ import {
 } from 'lucide-react';
 import MapPicker from '../../components/MapPicker';
 
-const getPrefix = (tipo: TipoImovel): string => {
-  switch (tipo) {
-    case 'Fazenda': return 'FAZ';
-    case 'Chácara': return 'CHA';
-    case 'Sítio': return 'SIT';
-    case 'Rancho': return 'RAN';
-    case 'Terreno Rural': return 'TER';
-    case 'Área Agrícola': return 'AGR';
-    default: return 'IMO';
-  }
+const getPrefix = (tipo: string): string => {
+  if (!tipo) return 'IMO';
+  const normalized = tipo
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toUpperCase()
+    .replace(/[^A-Z]/g, '');
+  const prefix = normalized.substring(0, 3);
+  return prefix.length >= 3 ? prefix : prefix.padEnd(3, 'X');
 };
 
 const parseCaracteristicas = (descricao: string): string[] => {
@@ -79,48 +79,28 @@ const AVAILABLE_ICONS = [
   { key: 'leaf', label: 'Mata / Área Verde', Icon: Leaf },
 ];
 
-const ESTADOS_BRASIL = [
-  { sigla: 'AC', nome: 'Acre' },
-  { sigla: 'AL', nome: 'Alagoas' },
-  { sigla: 'AM', nome: 'Amazonas' },
-  { sigla: 'AP', nome: 'Amapá' },
-  { sigla: 'BA', nome: 'Bahia' },
-  { sigla: 'CE', nome: 'Ceará' },
-  { sigla: 'DF', nome: 'Distrito Federal' },
-  { sigla: 'ES', nome: 'Espírito Santo' },
-  { sigla: 'GO', nome: 'Goiás' },
-  { sigla: 'MA', nome: 'Maranhão' },
-  { sigla: 'MG', nome: 'Minas Gerais' },
-  { sigla: 'MS', nome: 'Mato Grosso do Sul' },
-  { sigla: 'MT', nome: 'Mato Grosso' },
-  { sigla: 'PA', nome: 'Pará' },
-  { sigla: 'PB', nome: 'Paraíba' },
-  { sigla: 'PE', nome: 'Pernambuco' },
-  { sigla: 'PI', nome: 'Piauí' },
-  { sigla: 'PR', nome: 'Paraná' },
-  { sigla: 'RJ', nome: 'Rio de Janeiro' },
-  { sigla: 'RN', nome: 'Rio Grande do Norte' },
-  { sigla: 'RO', nome: 'Rondônia' },
-  { sigla: 'RR', nome: 'Roraima' },
-  { sigla: 'RS', nome: 'Rio Grande do Sul' },
-  { sigla: 'SC', nome: 'Santa Catarina' },
-  { sigla: 'SE', nome: 'Sergipe' },
-  { sigla: 'SP', nome: 'São Paulo' },
-  { sigla: 'TO', nome: 'Tocantins' }
-];
+import { ESTADOS_BRASIL } from '../../utils/estados';
 
 const PropertyForm: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const isNew = !id;
   const navigate = useNavigate();
   const { showToast } = useToast();
+  const { isAdmin } = useAuth();
+
+  useEffect(() => {
+    if (!isAdmin) {
+      navigate('/imoveis');
+    }
+  }, [isAdmin, navigate]);
+
   const queryClient = useQueryClient();
 
   // Form Fields State
   const [titulo, setTitulo] = useState('');
   const [codigo, setCodigo] = useState('');
   const [descricao, setDescricao] = useState('');
-  const [tipo, setTipo] = useState<TipoImovel>('Fazenda');
+  const [tipo, setTipo] = useState<string>('Fazenda');
   const [modalidade, setModalidade] = useState<ModalidadeImovel>('Venda');
   const [valor, setValor] = useState<number>(0);
   const [areaTotal, setAreaTotal] = useState<number>(0);
@@ -156,6 +136,12 @@ const PropertyForm: React.FC = () => {
   const handleRemoveCaracteristica = (indexToRemove: number) => {
     setCaracteristicas(caracteristicas.filter((_, idx) => idx !== indexToRemove));
   };
+
+  // Fetch categories
+  const { data: categories = [] } = useQuery({
+    queryKey: ['categories'],
+    queryFn: api.getCategories
+  });
 
   // Fetch existing property for editing
   const { data: existingProperty, isLoading } = useQuery({
@@ -241,7 +227,7 @@ const PropertyForm: React.FC = () => {
         });
 
       const nextNum = matchingCodes.length > 0 ? Math.max(...matchingCodes) + 1 : 1;
-      const formattedNum = String(nextNum).padStart(4, '0');
+      const formattedNum = String(nextNum).padStart(3, '0');
       setCodigo(`${prefix}${formattedNum}`);
     }
   }, [tipo, properties, isNew]);
@@ -435,15 +421,28 @@ const PropertyForm: React.FC = () => {
                 </label>
                 <select
                   value={tipo}
-                  onChange={(e) => setTipo(e.target.value as TipoImovel)}
+                  onChange={(e) => setTipo(e.target.value)}
                   className="w-full text-xs rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-850 py-2.5 px-3 focus:outline-none dark:text-white"
                 >
-                  <option value="Fazenda">Fazenda</option>
-                  <option value="Chácara">Chácara</option>
-                  <option value="Sítio">Sítio</option>
-                  <option value="Rancho">Rancho</option>
-                  <option value="Terreno Rural">Terreno Rural</option>
-                  <option value="Área Agrícola">Área Agrícola</option>
+                  {categories.length > 0 
+                    ? categories.map((cat) => (
+                        <option key={cat.id} value={cat.tipo}>
+                          {cat.nome}
+                        </option>
+                      ))
+                    : [
+                        { sigla: 'Fazenda', nome: 'Fazenda' },
+                        { sigla: 'Chácara', nome: 'Chácara' },
+                        { sigla: 'Sítio', nome: 'Sítio' },
+                        { sigla: 'Rancho', nome: 'Rancho' },
+                        { sigla: 'Terreno Rural', nome: 'Terreno Rural' },
+                        { sigla: 'Área Agrícola', nome: 'Área Agrícola' }
+                      ].map((t) => (
+                        <option key={t.sigla} value={t.sigla}>
+                          {t.nome}
+                        </option>
+                      ))
+                  }
                 </select>
               </div>
 

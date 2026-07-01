@@ -24,6 +24,7 @@ import DetalheImovel from './pages/DetalheImovel';
 import Sobre from './pages/Sobre';
 import Equipe from './pages/Equipe';
 import Contato from './pages/Contato';
+import PoliticaPrivacidade from './pages/PoliticaPrivacidade';
 
 // Administrative Pages
 import AdminLogin from './features/auth/AdminLogin';
@@ -33,9 +34,11 @@ import PropertyForm from './features/properties/PropertyForm';
 import MessagesList from './features/messages/MessagesList';
 import UsersList from './features/users/UsersList';
 import UserDetails from './features/users/UserDetails';
+import GestaoUsuarios from './features/users/GestaoUsuarios';
 import TestimonialsList from './features/testimonials/TestimonialsList';
 import SellersList from './features/sellers/SellersList';
 import Settings from './features/settings/Settings';
+import CategoriasList from './features/properties/CategoriasList';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -70,9 +73,11 @@ const App: React.FC = () => {
                     <Route path="/imoveis" element={<PropertiesList />} />
                     <Route path="/imoveis/novo" element={<PropertyForm />} />
                     <Route path="/imoveis/editar/:id" element={<PropertyForm />} />
+                    <Route path="/imoveis/categorias" element={<CategoriasList />} />
                     <Route path="/mensagens" element={<MessagesList />} />
-                    <Route path="/usuarios" element={<UsersList />} />
-                    <Route path="/usuarios/:id" element={<UserDetails />} />
+                    <Route path="/clientes" element={<UsersList />} />
+                    <Route path="/clientes/:id" element={<UserDetails />} />
+                    <Route path="/gestao-usuarios" element={<GestaoUsuarios />} />
                     <Route path="/depoimentos" element={<TestimonialsList />} />
                     <Route path="/vendedores" element={<SellersList />} />
                     <Route path="/configuracoes" element={<Settings />} />
@@ -93,6 +98,7 @@ const App: React.FC = () => {
                     <Route path="/sobre" element={<Sobre />} />
                     <Route path="/equipe" element={<Equipe />} />
                     <Route path="/contato" element={<Contato />} />
+                    <Route path="/politica-de-privacidade" element={<PoliticaPrivacidade />} />
                   </Route>
 
                   {/* Fallback to Home */}

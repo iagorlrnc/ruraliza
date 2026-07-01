@@ -6,6 +6,7 @@ import { api } from '../services/api';
 import { useToast } from '../contexts/ToastContext';
 import { useSEO } from '../hooks/useSEO';
 import { formatCurrency, formatArea } from '../utils/format';
+import { ESTADOS_BRASIL } from '../utils/estados';
 import { 
   MapPin, 
   Ruler, 
@@ -123,6 +124,8 @@ const DetalheImovel: React.FC = () => {
   const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
   const [telefone, setTelefone] = useState('');
+  const [cidade, setCidade] = useState('');
+  const [estado, setEstado] = useState('');
   const [tipoInteresse, setTipoInteresse] = useState<'contato' | 'visita'>('contato');
   const [dataVisita, setDataVisita] = useState('');
   const [mensagem, setMensagem] = useState('');
@@ -233,6 +236,8 @@ const DetalheImovel: React.FC = () => {
       setEmail('');
       setTelefone('');
       setMensagem('');
+      setCidade('');
+      setEstado('');
     },
     onError: () => {
       showToast('Ocorreu um erro ao registrar seu interesse. Tente novamente.', 'error');
@@ -248,6 +253,8 @@ const DetalheImovel: React.FC = () => {
       setTelefone('');
       setDataVisita('');
       setMensagem('');
+      setCidade('');
+      setEstado('');
     },
     onError: () => {
       showToast('Ocorreu um erro ao registrar sua visita. Tente novamente.', 'error');
@@ -256,10 +263,12 @@ const DetalheImovel: React.FC = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!nome || !email) {
-      showToast('Por favor, preencha os campos obrigatórios (Nome e E-mail).', 'error');
+    if (!nome || !email || !cidade || !estado) {
+      showToast('Por favor, preencha os campos obrigatórios (Nome, E-mail, Cidade e Estado).', 'error');
       return;
     }
+
+    const localidade = `${cidade} - ${estado.toUpperCase()}`;
 
     if (tipoInteresse === 'visita') {
       if (!dataVisita) {
@@ -272,7 +281,8 @@ const DetalheImovel: React.FC = () => {
         telefone,
         imovel_id: id || '',
         data_solicitada: new Date(dataVisita).toISOString(),
-        observacoes: mensagem
+        observacoes: mensagem,
+        cidade: localidade
       });
     } else {
       if (!mensagem) {
@@ -285,7 +295,8 @@ const DetalheImovel: React.FC = () => {
         telefone,
         assunto: `Interesse no imóvel ${property?.codigo}`,
         mensagem,
-        imovel_id: id
+        imovel_id: id,
+        cidade: localidade
       });
     }
   };
@@ -549,6 +560,40 @@ const DetalheImovel: React.FC = () => {
                   placeholder="(18) 99999-9999"
                   className="w-full text-xs rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-850 py-2.5 px-3 focus:outline-none focus:border-primary-medium dark:text-white"
                 />
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-[11px] font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-wider mb-1">
+                    Cidade *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={cidade}
+                    onChange={(e) => setCidade(e.target.value)}
+                    placeholder="Ex: Sorriso"
+                    className="w-full text-xs rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-850 py-2.5 px-3 focus:outline-none focus:border-primary-medium dark:text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-wider mb-1">
+                    Estado *
+                  </label>
+                  <select
+                    required
+                    value={estado}
+                    onChange={(e) => setEstado(e.target.value)}
+                    className="w-full text-xs rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-850 py-2.5 px-3 focus:outline-none focus:border-primary-medium dark:text-white"
+                  >
+                    <option value="">Selecione...</option>
+                    {ESTADOS_BRASIL.map((est) => (
+                      <option key={est.sigla} value={est.sigla}>
+                        {est.sigla} - {est.nome}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               {tipoInteresse === 'visita' && (

@@ -5,6 +5,7 @@ import { useToast } from '../contexts/ToastContext';
 import { useSEO } from '../hooks/useSEO';
 import { Phone, Mail, MapPin, MessageSquare, Clock } from 'lucide-react';
 import MapView from '../components/MapView';
+import { ESTADOS_BRASIL } from '../utils/estados';
 
 const Contato: React.FC = () => {
   useSEO('Contato', 'Fale com os consultores da Ruraliza Negócios. Tire dúvidas, solicite visitas ou envie propostas.');
@@ -20,6 +21,8 @@ const Contato: React.FC = () => {
   const [telefone, setTelefone] = useState('');
   const [assunto, setAssunto] = useState('Contato Geral');
   const [mensagem, setMensagem] = useState('');
+  const [cidade, setCidade] = useState('');
+  const [estado, setEstado] = useState('');
 
   const mutation = useMutation({
     mutationFn: api.registrarMensagemContato,
@@ -30,6 +33,8 @@ const Contato: React.FC = () => {
       setTelefone('');
       setAssunto('Contato Geral');
       setMensagem('');
+      setCidade('');
+      setEstado('');
     },
     onError: () => {
       showToast('Erro ao registrar sua mensagem. Tente novamente.', 'error');
@@ -38,8 +43,8 @@ const Contato: React.FC = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!nome || !email || !mensagem) {
-      showToast('Por favor, preencha os campos obrigatórios (Nome, E-mail e Mensagem).', 'error');
+    if (!nome || !email || !mensagem || !cidade || !estado) {
+      showToast('Por favor, preencha os campos obrigatórios (Nome, E-mail, Cidade, Estado e Mensagem).', 'error');
       return;
     }
     mutation.mutate({
@@ -47,7 +52,8 @@ const Contato: React.FC = () => {
       email,
       telefone,
       assunto,
-      mensagem
+      mensagem,
+      cidade: `${cidade} - ${estado.toUpperCase()}`
     });
   };
 
@@ -192,6 +198,41 @@ const Contato: React.FC = () => {
                   <option value="Avaliação de Propriedade">Avaliar Minha Propriedade</option>
                   <option value="Procura Técnica">Quero Comprar / Investir</option>
                   <option value="Parceria Comercial">Parceria Comercial</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-[11px] font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-wider mb-1">
+                  Cidade *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={cidade}
+                  onChange={(e) => setCidade(e.target.value)}
+                  placeholder="Ex: Sorriso"
+                  className="w-full text-xs rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-850 py-2.5 px-3 focus:outline-none focus:border-primary-medium dark:text-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-wider mb-1">
+                  Estado *
+                </label>
+                <select
+                  required
+                  value={estado}
+                  onChange={(e) => setEstado(e.target.value)}
+                  className="w-full text-xs rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-850 py-2.5 px-3 focus:outline-none focus:border-primary-medium dark:text-white"
+                >
+                  <option value="">Selecione...</option>
+                  {ESTADOS_BRASIL.map((est) => (
+                    <option key={est.sigla} value={est.sigla}>
+                      {est.sigla} - {est.nome}
+                    </option>
+                  ))}
                 </select>
               </div>
             </div>

@@ -13,7 +13,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     if (saved !== null) {
       return saved === 'true';
     }
-    return window.matchMedia('(prefers-color-scheme: dark)').matches;
+    return false; // Default theme is light theme
   });
 
   const timeoutRef = useRef<any>(null);
@@ -57,12 +57,31 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   useEffect(() => {
+    // Check if functional cookies are allowed in preferences
+    const consent = localStorage.getItem('ruraliza_cookie_consent');
+    let allowFunctional = true;
+    if (consent) {
+      try {
+        allowFunctional = JSON.parse(consent).functional;
+      } catch {
+        allowFunctional = true;
+      }
+    }
+
     if (darkMode) {
       document.documentElement.classList.add('dark');
-      localStorage.setItem('ruraliza_dark_mode', 'true');
+      if (allowFunctional) {
+        localStorage.setItem('ruraliza_dark_mode', 'true');
+      } else {
+        localStorage.removeItem('ruraliza_dark_mode');
+      }
     } else {
       document.documentElement.classList.remove('dark');
-      localStorage.setItem('ruraliza_dark_mode', 'false');
+      if (allowFunctional) {
+        localStorage.setItem('ruraliza_dark_mode', 'false');
+      } else {
+        localStorage.removeItem('ruraliza_dark_mode');
+      }
     }
   }, [darkMode]);
 

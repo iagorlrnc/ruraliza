@@ -4,9 +4,11 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../services/api';
 import { formatDateTime, formatPhone } from '../../utils/format';
 import { useToast } from '../../contexts/ToastContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { 
   Search, Mail, Phone as PhoneIcon, Building, Bookmark, Save, 
-  MessageSquare, Clock, CheckCircle2, Archive, Inbox, Calendar, ChevronRight, ExternalLink
+  MessageSquare, Clock, CheckCircle2, Archive, Inbox, Calendar, ChevronRight, ExternalLink,
+  User, UserCheck
 } from 'lucide-react';
 import { Mensagem, StatusMensagem } from '../../types';
 
@@ -40,9 +42,11 @@ const getAvatarColor = (name: string) => {
 const MessagesList: React.FC = () => {
   const { showToast } = useToast();
   const queryClient = useQueryClient();
+  const { user: currentUser, isAdmin } = useAuth();
 
   const [busca, setBusca] = useState('');
   const [filtroStatus, setFiltroStatus] = useState<string>('');
+  const [onlyAssignedToMe, setOnlyAssignedToMe] = useState(false);
   const [selectedMessageId, setSelectedMessageId] = useState<string | null>(null);
   
   // Note editing state
@@ -54,10 +58,19 @@ const MessagesList: React.FC = () => {
     queryFn: api.getMessages
   });
 
+  // Fetch users for assignment selection
+  const { data: users = [] } = useQuery({
+    queryKey: ['users'],
+    queryFn: api.getUsers
+  });
+
+  // Filter users to find eligible agents (admins & corretores)
+  const agents = users.filter(u => u.perfil === 'Administrador' || u.perfil === 'Corretor');
+
   // Status/Note Update Mutation
   const updateMutation = useMutation({
-    mutationFn: (payload: { id: string; status: StatusMensagem; observacao?: string }) => 
-      api.updateMessageStatus(payload.id, payload.status, payload.observacao),
+    mutationFn: (payload: { id: string; status: StatusMensagem; observacao?: string; atribuidoAId?: string | null }) => 
+      api.updateMessageStatus(payload.id, payload.status, payload.observacao, payload.atribuidoAId),
     onSuccess: () => {
       showToast('Mensagem atualizada com sucesso.', 'success');
       queryClient.invalidateQueries({ queryKey: ['messages'] });
@@ -72,7 +85,17 @@ const MessagesList: React.FC = () => {
     updateMutation.mutate({
       id: msg.id,
       status: newStatus,
-      observacao: msg.observacao_interna
+      observacao: msg.observacao_interna,
+      atribuidoAId: msg.atribuido_a_id
+    });
+  };
+
+  const handleAssignMessage = (msg: Mensagem, userId: string | null) => {
+    updateMutation.mutate({
+      id: msg.id,
+      status: msg.status,
+      observacao: msg.observacao_interna,
+      atribuidoAId: userId
     });
   };
 
@@ -80,7 +103,8 @@ const MessagesList: React.FC = () => {
     updateMutation.mutate({
       id: msg.id,
       status: msg.status,
-      observacao: observacaoInterna
+      observacao: observacaoInterna,
+      atribuidoAId: msg.atribuido_a_id
     });
   };
 
@@ -95,8 +119,9 @@ const MessagesList: React.FC = () => {
       msg.mensagem.toLowerCase().includes(bLower);
 
     const matchStatus = filtroStatus ? msg.status === filtroStatus : true;
+    const matchAssigned = onlyAssignedToMe ? msg.atribuido_a_id === currentUser?.id : true;
 
-    return matchSearch && matchStatus;
+    return matchSearch && matchStatus && matchAssigned;
   });
 
   // Select message details object
@@ -200,6 +225,18 @@ const MessagesList: React.FC = () => {
             Limpar
           </button>
         )}
+        <div className="h-4 w-[1px] bg-gray-200 dark:bg-zinc-850 shrink-0"></div>
+        <button
+          onClick={() => setOnlyAssignedToMe(!onlyAssignedToMe)}
+          className={`px-3 py-1.5 rounded-xl border text-[10px] font-bold transition-all cursor-pointer flex items-center gap-1.5 shrink-0 ${
+            onlyAssignedToMe 
+              ? 'bg-primary-medium text-white border-primary-medium shadow-sm' 
+              : 'bg-gray-50 dark:bg-zinc-800 border-gray-200 dark:border-zinc-700/50 text-gray-600 dark:text-zinc-400 hover:bg-gray-100 dark:hover:bg-zinc-750'
+          }`}
+        >
+          <UserCheck className="h-3.5 w-3.5 shrink-0" />
+          Atribuídas a Mim
+        </button>
       </div>
 
       {/* Split Pane View */}
@@ -271,6 +308,19 @@ const MessagesList: React.FC = () => {
                             {sConfig.label}
                           </span>
                         </div>
+
+                        {msg.atribuido_a && (
+                          <div className="mt-1.5 flex items-center">
+                            <span className={`inline-flex items-center gap-1 text-[8px] font-bold px-1.5 py-0.5 rounded-md border ${
+                              msg.atribuido_a_id === currentUser?.id
+                                ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/20 dark:text-emerald-400 border-emerald-250/30 font-semibold'
+                                : 'bg-gray-50 text-gray-550 dark:bg-zinc-800/80 dark:text-zinc-400 border-gray-150 dark:border-zinc-700/30'
+                            }`}>
+                              <User className="h-2 w-2 shrink-0" />
+                              {msg.atribuido_a_id === currentUser?.id ? 'Atribuída a mim' : `Atribuída a: ${msg.atribuido_a.nome.split(' ')[0]}`}
+                            </span>
+                          </div>
+                        )}
                       </div>
                     </div>
 
@@ -289,8 +339,21 @@ const MessagesList: React.FC = () => {
         <section className="hidden sm:flex flex-1 border border-gray-150 dark:border-zinc-800 bg-white dark:bg-zinc-900 rounded-3xl shadow-sm flex-col overflow-hidden">
           {selectedMessage ? (() => {
             const sConfig = statusConfig[selectedMessage.status];
+            const isAssignedToCurrentUser = selectedMessage.atribuido_a_id === currentUser?.id;
             return (
               <div className="flex flex-col h-full">
+                {/* Highlighted Banner for Assigned User */}
+                {isAssignedToCurrentUser && (
+                  <div className="bg-primary-medium/10 border-b border-primary-medium/20 px-5 py-2.5 flex items-center justify-between shrink-0 text-xs">
+                    <span className="text-primary-dark dark:text-primary-light font-bold flex items-center gap-1.5 font-poppins">
+                      <Bookmark className="h-4 w-4 shrink-0" /> Esta mensagem foi atribuída a você para atendimento.
+                    </span>
+                    <span className="text-[9px] bg-primary-medium text-white px-2 py-0.5 rounded font-bold uppercase tracking-wider font-sans">
+                      Sua Atribuição
+                    </span>
+                  </div>
+                )}
+
                 {/* Detail Header */}
                 <div className="p-5 pb-4 border-b border-gray-100 dark:border-zinc-800 space-y-4 shrink-0">
                   <div className="flex items-start justify-between gap-4">
@@ -300,7 +363,7 @@ const MessagesList: React.FC = () => {
                       </div>
                       <div className="min-w-0">
                         <h3 className="font-poppins text-sm font-bold text-gray-800 dark:text-white truncate">
-                          {selectedMessage.assunto}
+                           {selectedMessage.assunto}
                         </h3>
                         <div className="flex items-center gap-2 mt-0.5">
                           <span className="text-[11px] font-semibold text-gray-600 dark:text-zinc-300">{selectedMessage.nome}</span>
@@ -313,12 +376,37 @@ const MessagesList: React.FC = () => {
                       </div>
                     </div>
 
-                    {/* Status selector */}
-                    <div className="shrink-0">
+                    {/* Status & Assignment selectors */}
+                    <div className="shrink-0 flex flex-col sm:flex-row items-end sm:items-center gap-2">
+                      {/* Assignment Select (Corretor/Contador Responsável) */}
+                      <div className="flex items-center gap-1.5 bg-gray-50 dark:bg-zinc-800/60 px-2.5 py-1.5 rounded-xl border border-gray-150 dark:border-zinc-800">
+                        <UserCheck className="h-3.5 w-3.5 text-gray-400 dark:text-zinc-500" />
+                        <span className="text-[9px] font-bold text-gray-450 dark:text-zinc-500 uppercase tracking-wider">Resp:</span>
+                        {isAdmin ? (
+                          <select
+                            value={selectedMessage.atribuido_a_id || ''}
+                            onChange={(e) => handleAssignMessage(selectedMessage, e.target.value || null)}
+                            className="text-[10px] font-bold bg-transparent border-transparent focus:outline-none cursor-pointer text-gray-800 dark:text-white"
+                          >
+                            <option value="">Sem atribuição</option>
+                            {agents.map(u => (
+                              <option key={u.id} value={u.id}>
+                                {u.nome.split(' ')[0]} ({u.perfil === 'Administrador' ? 'Admin' : 'Corretor'})
+                              </option>
+                            ))}
+                          </select>
+                        ) : (
+                          <span className="text-[10px] font-bold text-gray-800 dark:text-white">
+                            {selectedMessage.atribuido_a ? selectedMessage.atribuido_a.nome.split(' ')[0] : 'Sem atribuição'}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Status select */}
                       <select
                         value={selectedMessage.status}
                         onChange={(e) => handleUpdateStatus(selectedMessage, e.target.value as StatusMensagem)}
-                        className={`text-[10px] font-bold rounded-xl border py-1.5 px-3 focus:outline-none cursor-pointer ${sConfig.bg} ${sConfig.color}`}
+                        className={`text-[10px] font-bold rounded-xl border py-1.5 px-3 focus:outline-none cursor-pointer h-[30px] flex items-center ${sConfig.bg} ${sConfig.color}`}
                       >
                         <option value="Nova">● Nova</option>
                         <option value="Em andamento">● Em andamento</option>

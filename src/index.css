@@ -114,8 +114,8 @@ input:-webkit-autofill,
 input:-webkit-autofill:hover, 
 input:-webkit-autofill:focus, 
 input:-webkit-autofill:active {
-  -webkit-box-shadow: 0 0 0 30px rgba(248, 243, 233, 0.95) inset !important; /* matches brand beige */
-  -webkit-text-fill-color: inherit !important;
+  -webkit-box-shadow: 0 0 0 1000px rgba(0, 0, 0, 0.03) inset !important; /* matches general input light background */
+  -webkit-text-fill-color: #000000 !important;
   transition: background-color 5000s ease-in-out 0s;
 }
 
@@ -123,22 +123,54 @@ input:-webkit-autofill:active {
 .dark input:-webkit-autofill:hover, 
 .dark input:-webkit-autofill:focus, 
 .dark input:-webkit-autofill:active {
-  -webkit-box-shadow: 0 0 0 30px rgba(24, 24, 27, 0.95) inset !important; /* matches zinc 900 */
+  -webkit-box-shadow: 0 0 0 1000px rgba(255, 255, 255, 0.03) inset !important; /* matches general input dark background */
+  -webkit-text-fill-color: #ffffff !important;
 }
 
-/* Force autofill background to be transparent specifically on login inputs */
+/* Force autofill background to be transparent specifically on transparent/login/hero-search inputs */
 .login-input:-webkit-autofill,
 .login-input:-webkit-autofill:hover, 
 .login-input:-webkit-autofill:focus, 
-.login-input:-webkit-autofill:active {
+.login-input:-webkit-autofill:active,
+input.bg-transparent:-webkit-autofill,
+input.bg-transparent:-webkit-autofill:hover, 
+input.bg-transparent:-webkit-autofill:focus, 
+input.bg-transparent:-webkit-autofill:active,
+input.hero-search-input:-webkit-autofill,
+input.hero-search-input:-webkit-autofill:hover, 
+input.hero-search-input:-webkit-autofill:focus, 
+input.hero-search-input:-webkit-autofill:active {
   -webkit-box-shadow: 0 0 0 1000px transparent inset !important;
-  -webkit-text-fill-color: #ffffff !important;
 }
+
 
 /* Force transparent background for the hero search input in Home.tsx to match its parent container */
 input[type="text"].hero-search-input,
 .dark input[type="text"].hero-search-input {
   background-color: transparent !important;
 }
+
+/* Force transparent background on elements that explicitly use the bg-transparent utility class */
+input[type="text"].bg-transparent,
+input[type="email"].bg-transparent,
+input[type="tel"].bg-transparent,
+input[type="number"].bg-transparent,
+input[type="url"].bg-transparent,
+input[type="password"].bg-transparent,
+input[type="datetime-local"].bg-transparent,
+textarea.bg-transparent,
+select.bg-transparent,
+.dark input[type="text"].bg-transparent,
+.dark input[type="email"].bg-transparent,
+.dark input[type="tel"].bg-transparent,
+.dark input[type="number"].bg-transparent,
+.dark input[type="url"].bg-transparent,
+.dark input[type="password"].bg-transparent,
+.dark input[type="datetime-local"].bg-transparent,
+.dark textarea.bg-transparent,
+.dark select.bg-transparent {
+  background-color: transparent !important;
+}
+
 
 

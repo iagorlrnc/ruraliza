@@ -2,11 +2,13 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../services/api';
 import { useToast } from '../../contexts/ToastContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { Plus, Edit2, Trash2, Save, User, Mail, Phone } from 'lucide-react';
 import { Vendedor } from '../../types';
 
 const SellersList: React.FC = () => {
   const { showToast } = useToast();
+  const { isAdmin } = useAuth();
   const queryClient = useQueryClient();
 
   // Form State
@@ -127,7 +129,7 @@ const SellersList: React.FC = () => {
           <h2 className="font-poppins text-lg font-bold text-gray-800 dark:text-white">Gestão de Vendedores / Corretores</h2>
           <p className="text-xs text-gray-505 mt-0.5">Gerencie os corretores, engenheiros e a equipe técnica exibida na página pública "Equipe".</p>
         </div>
-        {!formOpen && (
+        {!formOpen && isAdmin && (
           <button
             onClick={() => setFormOpen(true)}
             className="rounded-xl bg-primary-dark hover:bg-primary-medium text-brand-beige py-2.5 px-4 text-xs font-bold transition-colors flex items-center gap-1.5 shadow-md cursor-pointer"
@@ -349,20 +351,22 @@ const SellersList: React.FC = () => {
                   )}
                 </div>
 
-                <div className="flex gap-2 justify-end pt-2 border-t border-gray-100 dark:border-zinc-800/40">
-                  <button
-                    onClick={() => handleEdit(vendedor)}
-                    className="flex-1 py-1.5 rounded-lg border border-gray-200 dark:border-zinc-850 hover:bg-gray-50 dark:hover:bg-zinc-800 text-[11px] font-bold text-gray-600 dark:text-zinc-400 transition-colors flex items-center justify-center gap-1 cursor-pointer"
-                  >
-                    <Edit2 className="h-3 w-3" /> Editar
-                  </button>
-                  <button
-                    onClick={() => handleDelete(vendedor.id, vendedor.nome)}
-                    className="px-3 py-1.5 rounded-lg hover:bg-red-50 text-red-500 border border-transparent hover:border-red-200 dark:hover:border-red-950/20 dark:hover:bg-red-950/10 transition-colors flex items-center justify-center cursor-pointer"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
-                </div>
+                {isAdmin && (
+                  <div className="flex gap-2 justify-end pt-2 border-t border-gray-100 dark:border-zinc-800/40">
+                    <button
+                      onClick={() => handleEdit(vendedor)}
+                      className="flex-1 py-1.5 rounded-lg border border-gray-200 dark:border-zinc-850 hover:bg-gray-50 dark:hover:bg-zinc-800 text-[11px] font-bold text-gray-600 dark:text-zinc-400 transition-colors flex items-center justify-center gap-1 cursor-pointer"
+                    >
+                      <Edit2 className="h-3 w-3" /> Editar
+                    </button>
+                    <button
+                      onClick={() => handleDelete(vendedor.id, vendedor.nome)}
+                      className="px-3 py-1.5 rounded-lg hover:bg-red-50 text-red-500 border border-transparent hover:border-red-200 dark:hover:border-red-950/20 dark:hover:bg-red-950/10 transition-colors flex items-center justify-center cursor-pointer"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           ))}

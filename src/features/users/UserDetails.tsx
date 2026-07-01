@@ -87,8 +87,8 @@ const UserDetails: React.FC = () => {
     return (
       <div className="mx-auto max-w-7xl px-4 py-20 text-center space-y-4 text-left">
         <h2 className="font-poppins text-lg font-bold text-red-600">Usuário não encontrado</h2>
-        <Link to="/usuarios" className="inline-flex items-center gap-1 text-primary-medium hover:text-primary-dark font-semibold text-xs">
-          <ArrowLeft className="h-3.5 w-3.5" /> Voltar para usuários
+        <Link to="/clientes" className="inline-flex items-center gap-1 text-primary-medium hover:text-primary-dark font-semibold text-xs">
+          <ArrowLeft className="h-3.5 w-3.5" /> Voltar para clientes
         </Link>
       </div>
     );
@@ -184,8 +184,8 @@ const UserDetails: React.FC = () => {
       {/* Breadcrumb Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <Link to="/usuarios" className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-500 hover:text-primary-medium transition-colors">
-            <ArrowLeft className="h-4 w-4" /> Voltar para usuários
+          <Link to="/clientes" className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-500 hover:text-primary-medium transition-colors">
+            <ArrowLeft className="h-4 w-4" /> Voltar para clientes
           </Link>
           <h2 className="font-poppins text-xl font-bold text-gray-800 dark:text-white mt-1.5 flex items-center gap-2">
             Ficha do Lead & Histórico de Interações

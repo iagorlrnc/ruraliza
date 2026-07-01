@@ -7,6 +7,7 @@ interface AuthContextType {
   user: Usuario | null;
   loading: boolean;
   isAdmin: boolean;
+  isCorretor: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   error: string | null;
@@ -30,7 +31,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (mockSession) {
         try {
           const parsed = JSON.parse(mockSession);
-          setUser(parsed);
+          // Sync with local users db in case status changed
+          const users = JSON.parse(localStorage.getItem('ruraliza_users') || '[]');
+          const synced = users.find((u: any) => u.id === parsed.id);
+          if (synced && synced.status === 'Ativo' && (synced.perfil === 'Administrador' || synced.perfil === 'Corretor')) {
+            setUser(synced);
+          } else {
+            localStorage.removeItem('ruraliza_mock_admin_session');
+            setUser(null);
+          }
         } catch {
           localStorage.removeItem('ruraliza_mock_admin_session');
         }
@@ -45,10 +54,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.user) {
           const profile = await api.getUserById(session.user.id);
-          if (profile && profile.perfil === 'Administrador') {
-            setUser(profile);
+          if (profile && (profile.perfil === 'Administrador' || profile.perfil === 'Corretor')) {
+            if (profile.status === 'Ativo') {
+              setUser(profile);
+            } else if (profile.status === 'Pendente') {
+              const wasRegistering = sessionStorage.getItem('ruraliza_is_registering');
+              if (wasRegistering) {
+                sessionStorage.removeItem('ruraliza_is_registering');
+              } else {
+                setError('Seu cadastro está pendente de aprovação pelo administrador.');
+              }
+              await supabase.auth.signOut();
+              setUser(null);
+            } else {
+              setError('Seu acesso está inativo. Entre em contato com o administrador.');
+              await supabase.auth.signOut();
+              setUser(null);
+            }
           } else {
-            // Logged in but not admin
+            // Logged in but not allowed
             await supabase.auth.signOut();
             setUser(null);
           }
@@ -67,10 +91,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setLoading(true);
         try {
           const profile = await api.getUserById(session.user.id);
-          if (profile && profile.perfil === 'Administrador') {
-            setUser(profile);
+          if (profile && (profile.perfil === 'Administrador' || profile.perfil === 'Corretor')) {
+            if (profile.status === 'Ativo') {
+              setUser(profile);
+            } else if (profile.status === 'Pendente') {
+              const wasRegistering = sessionStorage.getItem('ruraliza_is_registering');
+              if (wasRegistering) {
+                sessionStorage.removeItem('ruraliza_is_registering');
+              } else {
+                setError('Seu cadastro está pendente de aprovação pelo administrador.');
+              }
+              await supabase.auth.signOut();
+              setUser(null);
+            } else {
+              setError('Seu acesso está inativo. Entre em contato com o administrador.');
+              await supabase.auth.signOut();
+              setUser(null);
+            }
           } else {
-            setError('Acesso negado: Este perfil não possui permissões de Administrador.');
+            setError('Acesso negado: Perfil sem permissão para acessar o painel.');
             await supabase.auth.signOut();
             setUser(null);
           }
@@ -98,22 +137,45 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!isSupabaseConfigured()) {
       // Mock login check
       await new Promise((resolve) => setTimeout(resolve, 800)); // simulate latency
-      if (email.toLowerCase() === 'contato@ruralizanegocios.com.br' && password === 'admin123') {
-        const mockAdmin: Usuario = {
-          id: 'user-admin-1',
-          nome: 'Renato Silva (Administrador)',
-          email: 'contato@ruralizanegocios.com.br',
-          telefone: '(11) 99999-9999',
-          cidade: 'Presidente Prudente',
-          perfil: 'Administrador',
-          status: 'Ativo',
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        };
-        setUser(mockAdmin);
-        localStorage.setItem('ruraliza_mock_admin_session', JSON.stringify(mockAdmin));
+      
+      const users = JSON.parse(localStorage.getItem('ruraliza_users') || '[]');
+      const foundUser = users.find((u: any) => u.email.toLowerCase() === email.toLowerCase());
+
+      if (foundUser) {
+        const expectedPassword = foundUser.senha || 'admin123';
+        if (password === expectedPassword) {
+          if (foundUser.status === 'Pendente') {
+            setError('Seu cadastro está pendente de aprovação pelo administrador.');
+          } else if (foundUser.status === 'Inativo') {
+            setError('Seu acesso está inativo. Entre em contato com o administrador.');
+          } else if (foundUser.perfil !== 'Administrador' && foundUser.perfil !== 'Corretor') {
+            setError('Acesso negado: Perfil não autorizado a acessar o painel.');
+          } else {
+            setUser(foundUser);
+            localStorage.setItem('ruraliza_mock_admin_session', JSON.stringify(foundUser));
+          }
+        } else {
+          setError('E-mail ou senha incorretos.');
+        }
       } else {
-        setError('E-mail ou senha administrativa incorretos. (Use contato@ruralizanegocios.com.br / admin123)');
+        // Fallback for default hardcoded admin in case storage was cleared
+        if (email.toLowerCase() === 'contato@ruralizanegocios.com.br' && password === 'admin123') {
+          const mockAdmin: Usuario = {
+            id: 'user-admin-1',
+            nome: 'Renato Silva',
+            email: 'contato@ruralizanegocios.com.br',
+            telefone: '(11) 99999-9999',
+            cidade: 'Presidente Prudente',
+            perfil: 'Administrador',
+            status: 'Ativo',
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          };
+          setUser(mockAdmin);
+          localStorage.setItem('ruraliza_mock_admin_session', JSON.stringify(mockAdmin));
+        } else {
+          setError('Usuário não encontrado ou senha incorreta.');
+        }
       }
       setLoading(false);
       return;
@@ -159,6 +221,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         user,
         loading,
         isAdmin: user?.perfil === 'Administrador',
+        isCorretor: user?.perfil === 'Corretor',
         login,
         logout,
         error,

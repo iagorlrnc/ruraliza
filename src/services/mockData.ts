@@ -1,4 +1,4 @@
-import { Imovel, Usuario, Mensagem, SolicitacaoVisita, Depoimento, DashboardMetrics, StatusMensagem, StatusVisita, Configuracoes, Vendedor } from '../types';
+import { Imovel, Usuario, Mensagem, SolicitacaoVisita, Depoimento, DashboardMetrics, StatusMensagem, StatusVisita, Configuracoes, Vendedor, Categoria } from '../types';
 
 const STORAGE_KEYS = {
   PROPERTIES: 'ruraliza_properties',
@@ -8,7 +8,8 @@ const STORAGE_KEYS = {
   TESTIMONIALS: 'ruraliza_testimonials',
   METRICS_VIEWS: 'ruraliza_property_views',
   CONFIG: 'ruraliza_config',
-  SELLERS: 'ruraliza_sellers'
+  SELLERS: 'ruraliza_sellers',
+  CATEGORIES: 'ruraliza_categories'
 };
 
 const INITIAL_PROPERTIES: Imovel[] = [
@@ -156,7 +157,32 @@ const INITIAL_USERS: Usuario[] = [
     cidade: 'Presidente Prudente',
     perfil: 'Administrador',
     status: 'Ativo',
+    senha: 'admin123',
     created_at: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString(),
+    updated_at: new Date().toISOString()
+  },
+  {
+    id: 'user-corretor-1',
+    nome: 'Marcos Corretor',
+    email: 'corretor@ruralizanegocios.com.br',
+    telefone: '(18) 99777-6655',
+    cidade: 'Presidente Prudente',
+    perfil: 'Corretor',
+    status: 'Ativo',
+    senha: 'corretor123',
+    created_at: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+    updated_at: new Date().toISOString()
+  },
+  {
+    id: 'user-pendente-1',
+    nome: 'Julia Candidata',
+    email: 'julia@ruralizanegocios.com.br',
+    telefone: '(18) 99666-5544',
+    cidade: 'Regente Feijó',
+    perfil: 'Corretor',
+    status: 'Pendente',
+    senha: 'julia123',
+    created_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
     updated_at: new Date().toISOString()
   },
   {
@@ -365,6 +391,17 @@ const initializeStorage = () => {
       'prop-6': 210
     }));
   }
+  if (!localStorage.getItem(STORAGE_KEYS.CATEGORIES)) {
+    const initialCategories: Categoria[] = [
+      { id: 'cat-1', nome: 'Fazendas', tipo: 'Fazenda', imagem: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=400&q=80' },
+      { id: 'cat-2', nome: 'Chácaras', tipo: 'Chácara', imagem: 'https://images.unsplash.com/photo-1500076656116-558758c991c1?auto=format&fit=crop&w=400&q=80' },
+      { id: 'cat-3', nome: 'Sítios', tipo: 'Sítio', imagem: 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=400&q=80' },
+      { id: 'cat-4', nome: 'Ranchos', tipo: 'Rancho', imagem: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=400&q=80' },
+      { id: 'cat-5', nome: 'Terrenos Rurais', tipo: 'Terreno Rural', imagem: 'https://images.unsplash.com/photo-1500937386664-56d1dfef3854?auto=format&fit=crop&w=400&q=80' },
+      { id: 'cat-6', nome: 'Áreas Agrícolas', tipo: 'Área Agrícola', imagem: 'https://images.unsplash.com/photo-1516253593875-bd7ba052fbc5?auto=format&fit=crop&w=400&q=80' }
+    ];
+    localStorage.setItem(STORAGE_KEYS.CATEGORIES, JSON.stringify(initialCategories));
+  }
 };
 
 initializeStorage();
@@ -502,6 +539,7 @@ export const mockDb = {
         cidade: user.cidade || '',
         perfil: user.perfil || 'Cliente',
         status: user.status || 'Ativo',
+        senha: user.senha || undefined,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         mensagens_enviadas_count: user.mensagens_enviadas_count || 0,
@@ -528,6 +566,7 @@ export const mockDb = {
     return list.map(msg => ({
       ...msg,
       usuario: users.find(u => u.id === msg.usuario_id),
+      atribuido_a: msg.atribuido_a_id ? users.find(u => u.id === msg.atribuido_a_id) : undefined,
       imovel: msg.imovel_id ? properties.find(p => p.id === msg.imovel_id) : undefined
     }));
   },
@@ -539,12 +578,14 @@ export const mockDb = {
     assunto: string;
     mensagem: string;
     imovel_id?: string;
+    cidade?: string;
   }): { usuarioId: string; mensagemId: string } => {
     // 1. Create or update user
     const user = mockDb.saveUser({
       nome: payload.nome,
       email: payload.email,
       telefone: payload.telefone,
+      cidade: payload.cidade || undefined,
       perfil: 'Cliente',
       status: 'Ativo',
       ultimo_contato: new Date().toISOString()
@@ -585,7 +626,7 @@ export const mockDb = {
     return { usuarioId: user.id, mensagemId: msgId };
   },
 
-  updateMessageStatus: (id: string, status: StatusMensagem, observacao?: string): boolean => {
+  updateMessageStatus: (id: string, status: StatusMensagem, observacao?: string, atribuidoAId?: string | null): boolean => {
     initializeStorage();
     const messages = JSON.parse(localStorage.getItem(STORAGE_KEYS.MESSAGES) || '[]');
     const index = messages.findIndex((m: Mensagem) => m.id === id);
@@ -593,6 +634,9 @@ export const mockDb = {
       messages[index].status = status;
       if (observacao !== undefined) {
         messages[index].observacao_interna = observacao;
+      }
+      if (atribuidoAId !== undefined) {
+        messages[index].atribuido_a_id = atribuidoAId === null ? undefined : atribuidoAId;
       }
       localStorage.setItem(STORAGE_KEYS.MESSAGES, JSON.stringify(messages));
       return true;
@@ -623,12 +667,14 @@ export const mockDb = {
     imovel_id: string;
     data_solicitada: string;
     observacoes?: string;
+    cidade?: string;
   }): { usuarioId: string; visitaId: string } => {
     // 1. Create or update user
     const user = mockDb.saveUser({
       nome: payload.nome,
       email: payload.email,
       telefone: payload.telefone,
+      cidade: payload.cidade || undefined,
       perfil: 'Cliente',
       status: 'Ativo',
       ultimo_contato: new Date().toISOString()
@@ -759,7 +805,7 @@ export const mockDb = {
     const imoveisAluguel = properties.filter(p => p.modalidade === 'Aluguel').length;
     
     const totalClientes = users.filter(u => u.perfil === 'Cliente').length;
-    const totalAdmins = users.filter(u => u.perfil === 'Administrador').length;
+    const totalAdmins = users.filter(u => u.perfil === 'Administrador' || u.perfil === 'Corretor').length;
     
     const mensagensPendentes = messages.filter(m => m.status === 'Nova' || m.status === 'Em andamento').length;
 
@@ -865,6 +911,53 @@ export const mockDb = {
     const filtered = list.filter(v => v.id !== id);
     if (filtered.length !== list.length) {
       localStorage.setItem(STORAGE_KEYS.SELLERS, JSON.stringify(filtered));
+      return true;
+    }
+    return false;
+  },
+
+  getCategories: (): Categoria[] => {
+    initializeStorage();
+    const data = localStorage.getItem(STORAGE_KEYS.CATEGORIES);
+    return data ? JSON.parse(data) : [];
+  },
+
+  saveCategory: (category: Partial<Categoria> & { nome: string; tipo: string }): Categoria => {
+    initializeStorage();
+    const list = mockDb.getCategories();
+    let saved: Categoria;
+
+    const existingIndex = list.findIndex(c => c.id === category.id);
+    if (existingIndex !== -1) {
+      list[existingIndex] = {
+        ...list[existingIndex],
+        ...category,
+        updated_at: new Date().toISOString()
+      };
+      saved = list[existingIndex];
+    } else {
+      const id = category.id || 'cat-' + Math.random().toString(36).substr(2, 9);
+      saved = {
+        id,
+        nome: category.nome,
+        tipo: category.tipo,
+        imagem: category.imagem || '/imagesub.png',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+      list.push(saved);
+    }
+
+    localStorage.setItem(STORAGE_KEYS.CATEGORIES, JSON.stringify(list));
+    return saved;
+  },
+
+  deleteCategory: (id: string): boolean => {
+    initializeStorage();
+    const list = mockDb.getCategories();
+    const filtered = list.filter(c => c.id !== id);
+    if (filtered.length !== list.length) {
+      localStorage.setItem(STORAGE_KEYS.CATEGORIES, JSON.stringify(filtered));
       return true;
     }
     return false;

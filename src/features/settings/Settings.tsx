@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import { api } from '../../services/api';
 import { useToast } from '../../contexts/ToastContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { Sliders, Save, Phone, Mail, MapPin, Globe, Award, MessageCircle } from 'lucide-react';
 import { Configuracoes } from '../../types';
 import MapPicker from '../../components/MapPicker';
@@ -31,6 +33,15 @@ const Linkedin = (props: React.SVGProps<SVGSVGElement>) => (
 
 const Settings: React.FC = () => {
   const { showToast } = useToast();
+  const { isAdmin } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!isAdmin) {
+      navigate('/');
+    }
+  }, [isAdmin, navigate]);
+
   const queryClient = useQueryClient();
 
   // Form State

@@ -1,5 +1,5 @@
-export type PerfilUsuario = 'Administrador' | 'Cliente';
-export type StatusUsuario = 'Ativo' | 'Inativo';
+export type PerfilUsuario = 'Administrador' | 'Corretor' | 'Cliente';
+export type StatusUsuario = 'Ativo' | 'Inativo' | 'Pendente';
 
 export interface Usuario {
   id: string;
@@ -9,6 +9,7 @@ export interface Usuario {
   cidade?: string;
   perfil: PerfilUsuario;
   status: StatusUsuario;
+  senha?: string;
   created_at: string;
   updated_at: string;
   // CRM helper stats (calculated or aggregated)
@@ -26,7 +27,7 @@ export interface Imovel {
   codigo: string;
   titulo: string;
   descricao: string;
-  tipo: TipoImovel;
+  tipo: string;
   modalidade: ModalidadeImovel;
   valor: number;
   area_total: number;
@@ -62,6 +63,8 @@ export interface Mensagem {
   mensagem: string;
   status: StatusMensagem;
   observacao_interna?: string;
+  atribuido_a_id?: string;
+  atribuido_a?: Usuario;
   created_at: string;
   usuario?: Usuario;
   imovel?: Imovel;
@@ -131,5 +134,15 @@ export interface Vendedor {
   creci?: string;
   created_at?: string;
   updated_at?: string;
+}
+
+export interface Categoria {
+  id: string;
+  nome: string;
+  tipo: string;
+  imagem?: string;
+  created_at?: string;
+  updated_at?: string;
+  count?: number;
 }
 
