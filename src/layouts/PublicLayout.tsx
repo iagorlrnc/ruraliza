@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
-import { Menu, X, MapPin, Phone, Mail, Sun, Moon, Lock } from 'lucide-react';
+import { Menu, X, MapPin, Phone, Mail, Sun, Moon } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { useTheme } from '../contexts/ThemeContext';
 import { api } from '../services/api';
@@ -68,21 +68,11 @@ const PublicLayout: React.FC = () => {
     };
     document.addEventListener('copy', handleCopy);
 
-    // 2. Block print shortcut Ctrl+P / Cmd+P, DevTools, and print screen keys
+    // 2. Block print shortcut Ctrl+P / Cmd+P and key print screen combinations
     const handleKeyDown = (e: KeyboardEvent) => {
       // Block Ctrl+P / Cmd+P
       if ((e.ctrlKey || e.metaKey) && e.key === 'p') {
         e.preventDefault();
-        setShowWatermark(true);
-      }
-
-      // Block DevTools shortcuts (F12, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+Shift+C)
-      if (
-        e.key === 'F12' || 
-        ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'i' || e.key === 'I' || e.key === 'j' || e.key === 'J' || e.key === 'c' || e.key === 'C'))
-      ) {
-        e.preventDefault();
-        setShowWatermark(true);
       }
 
       // PrintScreen key down
@@ -134,18 +124,9 @@ const PublicLayout: React.FC = () => {
       }
     };
 
-    const handleBeforePrint = () => {
-      setShowWatermark(true);
-    };
-    const handleAfterPrint = () => {
-      setShowWatermark(false);
-    };
-
     window.addEventListener('blur', handleBlur);
     window.addEventListener('focus', handleFocus);
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('beforeprint', handleBeforePrint);
-    window.addEventListener('afterprint', handleAfterPrint);
 
     return () => {
       document.removeEventListener('contextmenu', preventActions);
@@ -156,8 +137,6 @@ const PublicLayout: React.FC = () => {
       window.removeEventListener('blur', handleBlur);
       window.removeEventListener('focus', handleFocus);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('beforeprint', handleBeforePrint);
-      window.removeEventListener('afterprint', handleAfterPrint);
     };
   }, []);
 
@@ -185,22 +164,6 @@ const PublicLayout: React.FC = () => {
 
   return (
     <div className={`public-layout min-h-screen flex flex-col bg-brand-beige dark:bg-zinc-950 text-gray-800 dark:text-zinc-100 transition-colors duration-300 ${showWatermark ? 'watermark-active' : ''}`}>
-      {/* Security Overlay when blur/screenshot is detected */}
-      {showWatermark && (
-        <div className="fixed inset-0 bg-white/70 dark:bg-zinc-950/80 backdrop-blur-md z-[999] flex flex-col items-center justify-center text-center p-6 transition-all duration-300 animate-in fade-in duration-300">
-          <div className="max-w-md space-y-4">
-            <div className="h-16 w-16 bg-rose-500/10 text-rose-500 rounded-3xl flex items-center justify-center mx-auto animate-pulse">
-              <Lock className="h-8 w-8" />
-            </div>
-            <h3 className="font-poppins text-lg font-bold text-gray-800 dark:text-white">
-              Visualização Segura Ativa
-            </h3>
-            <p className="text-xs text-gray-500 dark:text-zinc-400 leading-relaxed font-sans">
-              O conteúdo deste portal está protegido. Para continuar visualizando as informações, clique de volta nesta janela.
-            </p>
-          </div>
-        </div>
-      )}
       {/* Fixed Header */}
       <header className={`fixed top-0 left-0 right-0 z-40 border-b border-primary-dark/10 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md transition-all duration-500 ${
         isHome && !scrolled 
@@ -435,10 +398,10 @@ const PublicLayout: React.FC = () => {
           pointer-events: none !important;
         }
 
-        /* When watermark is active, blur all content images and show logo overlay */
+        /* When watermark is active, blur all content images */
         .public-layout.watermark-active img:not([data-no-protect]):not(.leaflet-tile):not(.leaflet-marker-icon):not(.leaflet-marker-shadow) {
-          filter: blur(16px) brightness(0.5) !important;
-          transition: filter 0.2s ease;
+          filter: blur(24px) brightness(0.4) !important;
+          transition: filter 0.15s ease;
         }
 
         /* Exclude leaflet map containers from watermark overlay */
@@ -446,18 +409,24 @@ const PublicLayout: React.FC = () => {
           filter: none !important;
         }
 
-        /* Overlay the logo watermark on every image container */
-        .public-layout.watermark-active *:not(.leaflet-container):not(.leaflet-tile-pane):not(.leaflet-layer):has(> img:not([data-no-protect]):not(.leaflet-tile):not(.leaflet-marker-icon):not(.leaflet-marker-shadow)) {
+        /* Permanent subtle logo watermark on all important image containers */
+        .public-layout *:not(.leaflet-container):not(.leaflet-tile-pane):not(.leaflet-layer):has(> img:not([data-no-protect]):not(.leaflet-tile):not(.leaflet-marker-icon):not(.leaflet-marker-shadow)) {
           position: relative;
         }
-        .public-layout.watermark-active *:not(.leaflet-container):not(.leaflet-tile-pane):not(.leaflet-layer):has(> img:not([data-no-protect]):not(.leaflet-tile):not(.leaflet-marker-icon):not(.leaflet-marker-shadow))::after {
+        .public-layout *:not(.leaflet-container):not(.leaflet-tile-pane):not(.leaflet-layer):has(> img:not([data-no-protect]):not(.leaflet-tile):not(.leaflet-marker-icon):not(.leaflet-marker-shadow))::after {
           content: '';
           position: absolute;
           inset: 0;
           z-index: 20;
-          background: url('/logonome.png') center / 40% no-repeat;
+          background: url('/logonome.png') center / 35% no-repeat;
           pointer-events: none;
-          opacity: 0.85;
+          opacity: 0.18; /* Permanent subtle watermark */
+          transition: opacity 0.15s ease;
+        }
+
+        /* Increase watermark opacity to max when secure overlay/blur is active */
+        .public-layout.watermark-active *:not(.leaflet-container):not(.leaflet-tile-pane):not(.leaflet-layer):has(> img:not([data-no-protect]):not(.leaflet-tile):not(.leaflet-marker-icon):not(.leaflet-marker-shadow))::after {
+          opacity: 0.95;
         }
       `}</style>
       <CookieConsent />
