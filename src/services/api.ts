@@ -361,6 +361,22 @@ export const api = {
     }
   },
 
+  deleteUser: async (id: string): Promise<boolean> => {
+    if (!isSupabaseConfigured()) {
+      return mockDb.deleteUser(id);
+    }
+
+    const { data, error } = await supabase.rpc('admin_deletar_usuario', {
+      p_usuario_id: id
+    });
+
+    if (error) {
+      console.error('Error deleting user from Supabase:', error);
+      throw error;
+    }
+    return !!data;
+  },
+
   // --- MESSAGES ---
   getMessages: async (): Promise<Mensagem[]> => {
     if (!isSupabaseConfigured()) {
@@ -709,13 +725,13 @@ export const api = {
     }
     const { data, error } = await supabase
       .from('tabela_configuracoes')
-      .update({
+      .upsert({
         ...config,
+        id: config.id || 'c0b67540-3b00-4b08-8e6f-fb9f8ee18299',
         latitude: config.latitude ? Number(config.latitude) : null,
         longitude: config.longitude ? Number(config.longitude) : null,
         updated_at: new Date().toISOString()
       })
-      .eq('id', config.id || 'c0b67540-3b00-4b08-8e6f-fb9f8ee18299')
       .select()
       .single();
 

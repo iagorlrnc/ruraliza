@@ -6,6 +6,7 @@ import { useSEO } from '../hooks/useSEO';
 import { Phone, Mail, MapPin, MessageSquare, Clock } from 'lucide-react';
 import MapView from '../components/MapView';
 import { ESTADOS_BRASIL } from '../utils/estados';
+import { maskPhone } from '../utils/masks';
 
 const Contato: React.FC = () => {
   useSEO('Contato', 'Fale com os consultores da Ruraliza Negócios. Tire dúvidas, solicite visitas ou envie propostas.');
@@ -47,6 +48,13 @@ const Contato: React.FC = () => {
       showToast('Por favor, preencha os campos obrigatórios (Nome, E-mail, Cidade, Estado e Mensagem).', 'error');
       return;
     }
+
+    const cleanPhone = telefone.replace(/\D/g, '');
+    if (cleanPhone && cleanPhone.length < 10) {
+      showToast('Por favor, insira um telefone válido.', 'error');
+      return;
+    }
+
     mutation.mutate({
       nome,
       email,
@@ -179,7 +187,7 @@ const Contato: React.FC = () => {
                 <input
                   type="tel"
                   value={telefone}
-                  onChange={(e) => setTelefone(e.target.value)}
+                  onChange={(e) => setTelefone(maskPhone(e.target.value))}
                   placeholder="(18) 99999-9999"
                   className="w-full text-xs rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-850 py-2.5 px-3 focus:outline-none focus:border-primary-medium dark:text-white"
                 />

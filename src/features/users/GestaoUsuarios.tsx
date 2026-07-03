@@ -6,9 +6,10 @@ import { useAuth } from '../../contexts/AuthContext';
 import { formatDate, formatPhone } from '../../utils/format';
 import { 
   Search, ShieldCheck, BadgeCheck, Edit2, Check, X, 
-  UserPlus, Save, AlertCircle, XCircle 
+  Save, AlertCircle, XCircle, Trash2 
 } from 'lucide-react';
 import { Usuario, PerfilUsuario, StatusUsuario } from '../../types';
+import { maskPhone } from '../../utils/masks';
 
 const GestaoUsuarios: React.FC = () => {
   const { showToast } = useToast();
@@ -68,17 +69,30 @@ const GestaoUsuarios: React.FC = () => {
     }
   });
 
-  const handleOpenAdd = () => {
-    setEditingUser(null);
-    setNome('');
-    setEmail('');
-    setTelefone('');
-    setCidade('');
-    setPerfil('Corretor');
-    setStatus('Pendente');
-    setSenha('');
-    setModalOpen(true);
+  // Delete Mutation
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => api.deleteUser(id),
+    onSuccess: () => {
+      showToast('Usuário removido com sucesso.', 'success');
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-metrics'] });
+    },
+    onError: (err: any) => {
+      const msg = err instanceof Error ? err.message : 'Erro ao remover usuário.';
+      showToast(msg, 'error');
+    }
+  });
+
+  const handleDelete = (u: Usuario) => {
+    if (u.id === currentUser?.id) {
+      showToast('Você não pode remover o seu próprio usuário.', 'error');
+      return;
+    }
+    if (window.confirm(`Tem certeza de que deseja remover permanentemente o usuário ${u.nome}? Esta ação também excluirá sua conta do Supabase Auth e não poderá ser desfeita.`)) {
+      deleteMutation.mutate(u.id);
+    }
   };
+
 
   const handleOpenEdit = (u: Usuario) => {
     setEditingUser(u);
@@ -101,6 +115,12 @@ const GestaoUsuarios: React.FC = () => {
     e.preventDefault();
     if (!nome || !email) {
       showToast('Nome e E-mail são obrigatórios.', 'error');
+      return;
+    }
+
+    const cleanPhone = telefone.replace(/\D/g, '');
+    if (cleanPhone && cleanPhone.length < 10) {
+      showToast('Por favor, insira um telefone válido.', 'error');
       return;
     }
 
@@ -166,12 +186,6 @@ const GestaoUsuarios: React.FC = () => {
           <h2 className="font-poppins text-lg font-bold text-gray-800 dark:text-white">Gestão de Usuários</h2>
           <p className="text-xs text-gray-500 mt-0.5">Gerencie quem possui acesso ao painel administrativo (Administradores e Corretores).</p>
         </div>
-        <button
-          onClick={handleOpenAdd}
-          className="rounded-xl bg-primary-dark hover:bg-primary-medium text-brand-beige py-2.5 px-4 text-xs font-bold transition-colors flex items-center gap-1.5 shadow-md cursor-pointer"
-        >
-          <UserPlus className="h-4 w-4" /> Novo Usuário
-        </button>
       </div>
 
       {/* Filters bar */}
@@ -309,6 +323,16 @@ const GestaoUsuarios: React.FC = () => {
                       >
                         <Edit2 className="h-3.5 w-3.5" />
                       </button>
+                      {u.id !== currentUser?.id && (
+                        <button
+                          onClick={() => handleDelete(u)}
+                          disabled={deleteMutation.isPending}
+                          className="p-1.5 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-lg text-red-650 transition-colors inline-flex items-center cursor-pointer disabled:opacity-50"
+                          title="Remover Usuário"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -369,7 +393,7 @@ const GestaoUsuarios: React.FC = () => {
                   <input
                     type="text"
                     value={telefone}
-                    onChange={(e) => setTelefone(e.target.value)}
+                    onChange={(e) => setTelefone(maskPhone(e.target.value))}
                     placeholder="Ex: (18) 99888-7766"
                     className="w-full text-xs rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-850 py-2.5 px-3 focus:outline-none focus:border-primary-medium dark:text-white"
                   />
@@ -382,7 +406,7 @@ const GestaoUsuarios: React.FC = () => {
                     type="text"
                     value={cidade}
                     onChange={(e) => setCidade(e.target.value)}
-                    placeholder="Ex: Presidente Prudente"
+                    placeholder="Ex: Palmas"
                     className="w-full text-xs rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-850 py-2.5 px-3 focus:outline-none focus:border-primary-medium dark:text-white"
                   />
                 </div>

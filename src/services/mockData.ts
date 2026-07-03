@@ -154,7 +154,7 @@ const INITIAL_USERS: Usuario[] = [
     nome: 'Renato Silva',
     email: 'contato@ruralizanegocios.com.br',
     telefone: '(11) 99999-9999',
-    cidade: 'Presidente Prudente',
+    cidade: 'Palmas',
     perfil: 'Administrador',
     status: 'Ativo',
     senha: 'admin123',
@@ -166,7 +166,7 @@ const INITIAL_USERS: Usuario[] = [
     nome: 'Marcos Corretor',
     email: 'corretor@ruralizanegocios.com.br',
     telefone: '(18) 99777-6655',
-    cidade: 'Presidente Prudente',
+    cidade: 'Palmas',
     perfil: 'Corretor',
     status: 'Ativo',
     senha: 'corretor123',
@@ -301,10 +301,10 @@ const INITIAL_CONFIG: Configuracoes = {
   telefone: '(18) 3222-1234',
   telefone_secundario: '(18) 99888-7766',
   email: 'contato@ruralizanegocios.com.br',
-  endereco: 'Av. Coronel José Soares Marcondes, 1500 - Centro, Presidente Prudente - SP',
+  endereco: 'Av. Coronel José Soares Marcondes, 1500 - Centro, Palmas - TO',
   creci: '35.421-J',
-  latitude: -22.122765,
-  longitude: -51.389270,
+  latitude: -10.180000,
+  longitude: -48.330000,
   social_facebook: 'https://facebook.com/ruraliza',
   social_instagram: 'https://instagram.com/ruraliza',
   social_linkedin: 'https://linkedin.com/company/ruraliza',
@@ -551,6 +551,27 @@ export const mockDb = {
 
     localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(list));
     return saved;
+  },
+
+  deleteUser: (id: string): boolean => {
+    initializeStorage();
+    const list = JSON.parse(localStorage.getItem(STORAGE_KEYS.USERS) || '[]');
+    const filtered = list.filter((u: Usuario) => u.id !== id);
+    if (filtered.length !== list.length) {
+      localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(filtered));
+
+      // Cascade to messages and visits by setting usuario_id to null
+      const messages = JSON.parse(localStorage.getItem(STORAGE_KEYS.MESSAGES) || '[]');
+      const updatedMessages = messages.map((m: any) => m.usuario_id === id ? { ...m, usuario_id: null } : m);
+      localStorage.setItem(STORAGE_KEYS.MESSAGES, JSON.stringify(updatedMessages));
+
+      const visits = JSON.parse(localStorage.getItem(STORAGE_KEYS.VISITS) || '[]');
+      const updatedVisits = visits.map((v: any) => v.usuario_id === id ? { ...v, usuario_id: null } : v);
+      localStorage.setItem(STORAGE_KEYS.VISITS, JSON.stringify(updatedVisits));
+
+      return true;
+    }
+    return false;
   },
 
   // --- MESSAGES (LEADS) ---

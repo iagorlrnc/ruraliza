@@ -7,6 +7,7 @@ import { useToast } from '../contexts/ToastContext';
 import { useSEO } from '../hooks/useSEO';
 import { formatCurrency, formatArea } from '../utils/format';
 import { ESTADOS_BRASIL } from '../utils/estados';
+import { maskPhone } from '../utils/masks';
 import { 
   MapPin, 
   Ruler, 
@@ -265,6 +266,12 @@ const DetalheImovel: React.FC = () => {
     e.preventDefault();
     if (!nome || !email || !cidade || !estado) {
       showToast('Por favor, preencha os campos obrigatórios (Nome, E-mail, Cidade e Estado).', 'error');
+      return;
+    }
+
+    const cleanPhone = telefone.replace(/\D/g, '');
+    if (cleanPhone && cleanPhone.length < 10) {
+      showToast('Por favor, insira um telefone válido.', 'error');
       return;
     }
 
@@ -556,7 +563,7 @@ const DetalheImovel: React.FC = () => {
                 <input
                   type="tel"
                   value={telefone}
-                  onChange={(e) => setTelefone(e.target.value)}
+                  onChange={(e) => setTelefone(maskPhone(e.target.value))}
                   placeholder="(18) 99999-9999"
                   className="w-full text-xs rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-850 py-2.5 px-3 focus:outline-none focus:border-primary-medium dark:text-white"
                 />

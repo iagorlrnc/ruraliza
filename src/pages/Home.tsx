@@ -7,6 +7,7 @@ import { useToast } from '../contexts/ToastContext';
 import { useSEO } from '../hooks/useSEO';
 import { formatCurrency, formatArea } from '../utils/format';
 import { ESTADOS_BRASIL } from '../utils/estados';
+import { maskPhone } from '../utils/masks';
 import { 
   Search, 
   MapPin, 
@@ -222,6 +223,13 @@ const Home: React.FC = () => {
       showToast('Por favor, preencha os campos obrigatórios (Nome, E-mail, Cidade, Estado e Mensagem).', 'error');
       return;
     }
+
+    const cleanPhone = telefone.replace(/\D/g, '');
+    if (cleanPhone && cleanPhone.length < 10) {
+      showToast('Por favor, insira um telefone válido.', 'error');
+      return;
+    }
+
     messageMutation.mutate({
       nome,
       email,
@@ -706,7 +714,9 @@ const Home: React.FC = () => {
 
               <div className="overflow-hidden w-full">
                 <div 
-                  className="flex transition-transform duration-500 ease-in-out gap-6"
+                  className={`flex transition-transform duration-500 ease-in-out gap-6 ${
+                    approvedTestimonials.length < testimonialsItemsPerView ? 'justify-center' : ''
+                  }`}
                   style={{ 
                     transform: `translateX(calc(-1 * (${testimonialsIndex} * (100% / ${testimonialsItemsPerView}) + ${testimonialsIndex} * ${testimonialsItemsPerView === 3 ? 8 : 24}px)))` 
                   }}
@@ -838,7 +848,7 @@ const Home: React.FC = () => {
                   <input
                     type="tel"
                     value={telefone}
-                    onChange={(e) => setTelefone(e.target.value)}
+                    onChange={(e) => setTelefone(maskPhone(e.target.value))}
                     placeholder="(18) 99999-9999"
                     className="w-full text-xs rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-850 py-2.5 px-3 focus:outline-none focus:border-primary-medium dark:text-white"
                   />

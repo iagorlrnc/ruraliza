@@ -66,14 +66,27 @@ const AdminLayout: React.FC = () => {
     return <Navigate to="/login" replace />;
   }
 
+  // Prevent Corretor from accessing Admin-only pages
+  const isRestrictedPath = !isAdmin && (
+    location.pathname.startsWith('/imoveis') ||
+    location.pathname.startsWith('/vendedores') ||
+    location.pathname.startsWith('/depoimentos') ||
+    location.pathname.startsWith('/gestao-usuarios') ||
+    location.pathname.startsWith('/configuracoes')
+  );
+
+  if (isRestrictedPath) {
+    return <Navigate to="/" replace />;
+  }
+
   const navItems = [
     { name: 'Dashboard', path: '/', icon: LayoutDashboard },
-    { name: 'Gestão de Imóveis', path: '/imoveis', icon: Home },
+    ...(isAdmin ? [{ name: 'Gestão de Imóveis', path: '/imoveis', icon: Home }] : []),
     { name: 'Mensagens Recebidas', path: '/mensagens', icon: MessageSquare },
     { name: 'Clientes (CRM)', path: '/clientes', icon: Users },
     ...(isAdmin ? [{ name: 'Gestão de Usuários', path: '/gestao-usuarios', icon: UserCheck }] : []),
-    { name: 'Gestão de Vendedores', path: '/vendedores', icon: UserCheck },
-    { name: 'Depoimentos', path: '/depoimentos', icon: MessageCircle },
+    ...(isAdmin ? [{ name: 'Gestão de Vendedores', path: '/vendedores', icon: UserCheck }] : []),
+    ...(isAdmin ? [{ name: 'Depoimentos', path: '/depoimentos', icon: MessageCircle }] : []),
     ...(isAdmin ? [{ name: 'Configurações', path: '/configuracoes', icon: Sliders }] : [])
   ];
 
@@ -101,7 +114,7 @@ const AdminLayout: React.FC = () => {
               Ruraliza
             </span>
             <span className="font-sans text-[9px] tracking-widest font-bold text-primary-medium dark:text-primary-light block uppercase">
-              Painel Admin
+              {isCorretor ? 'Painel Vendedor' : 'Painel Admin'}
             </span>
           </div>
         </div>
@@ -169,7 +182,7 @@ const AdminLayout: React.FC = () => {
             <div>
               <span className="font-poppins text-base font-bold text-primary-dark dark:text-white block leading-tight">Ruraliza</span>
               <span className="font-sans text-[9px] tracking-widest font-bold text-primary-medium dark:text-primary-light block uppercase">
-                Painel Admin
+                {isCorretor ? 'Painel Vendedor' : 'Painel Admin'}
               </span>
             </div>
           </div>
@@ -259,7 +272,7 @@ const AdminLayout: React.FC = () => {
                   {user.nome}
                 </span>
                 <span className="block text-[10px] text-primary-medium dark:text-primary-light font-semibold -mt-0.5">
-                  Administrador
+                  {user.perfil}
                 </span>
               </div>
             </div>

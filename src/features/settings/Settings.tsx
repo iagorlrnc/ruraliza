@@ -7,6 +7,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { Sliders, Save, Phone, Mail, MapPin, Globe, Award, MessageCircle } from 'lucide-react';
 import { Configuracoes } from '../../types';
 import MapPicker from '../../components/MapPicker';
+import { maskPhone, maskCreci } from '../../utils/masks';
 
 // Custom SVG Icons to avoid lucide-react version compatibility issues
 const Facebook = (props: React.SVGProps<SVGSVGElement>) => (
@@ -99,6 +100,18 @@ const Settings: React.FC = () => {
       return;
     }
 
+    const cleanPhone = telefone.replace(/\D/g, '');
+    if (cleanPhone && cleanPhone.length < 10) {
+      showToast('Por favor, insira um telefone principal válido.', 'error');
+      return;
+    }
+
+    const cleanSecPhone = telefoneSecundario.replace(/\D/g, '');
+    if (cleanSecPhone && cleanSecPhone.length < 10) {
+      showToast('Por favor, insira um telefone secundário válido.', 'error');
+      return;
+    }
+
     saveMutation.mutate({
       id: config?.id,
       telefone,
@@ -152,7 +165,7 @@ const Settings: React.FC = () => {
                     type="text"
                     required
                     value={telefone}
-                    onChange={(e) => setTelefone(e.target.value)}
+                    onChange={(e) => setTelefone(maskPhone(e.target.value))}
                     placeholder="Ex: (18) 3222-1234"
                     className="w-full text-xs rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-850 py-2.5 pl-10 pr-3 focus:outline-none focus:border-primary-medium dark:text-white"
                   />
@@ -168,7 +181,7 @@ const Settings: React.FC = () => {
                   <input
                     type="text"
                     value={telefoneSecundario}
-                    onChange={(e) => setTelefoneSecundario(e.target.value)}
+                    onChange={(e) => setTelefoneSecundario(maskPhone(e.target.value))}
                     placeholder="Ex: (18) 99888-7766"
                     className="w-full text-xs rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-850 py-2.5 pl-10 pr-3 focus:outline-none focus:border-primary-medium dark:text-white"
                   />
@@ -204,7 +217,7 @@ const Settings: React.FC = () => {
                     type="text"
                     required
                     value={creci}
-                    onChange={(e) => setCreci(e.target.value)}
+                    onChange={(e) => setCreci(maskCreci(e.target.value))}
                     placeholder="Ex: 35.421-J"
                     className="w-full text-xs rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-850 py-2.5 pl-10 pr-3 focus:outline-none focus:border-primary-medium dark:text-white"
                   />
@@ -313,38 +326,6 @@ const Settings: React.FC = () => {
               <h3 className="font-poppins text-sm font-bold text-gray-800 dark:text-white">Localização Geográfica do Escritório</h3>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-semibold text-gray-600 dark:text-zinc-400 mb-1">
-                  Latitude
-                </label>
-                <input
-                  type="number"
-                  step="any"
-                  required
-                  value={latitude}
-                  onChange={(e) => setLatitude(Number(e.target.value))}
-                  placeholder="Ex: -22.122765"
-                  className="w-full text-xs rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-850 py-2.5 px-3 focus:outline-none focus:border-primary-medium dark:text-white"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-gray-600 dark:text-zinc-400 mb-1">
-                  Longitude
-                </label>
-                <input
-                  type="number"
-                  step="any"
-                  required
-                  value={longitude}
-                  onChange={(e) => setLongitude(Number(e.target.value))}
-                  placeholder="Ex: -51.389270"
-                  className="w-full text-xs rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-850 py-2.5 px-3 focus:outline-none focus:border-primary-medium dark:text-white"
-                />
-              </div>
-            </div>
-
             <div>
               <label className="block text-xs font-semibold text-gray-600 dark:text-zinc-400 mb-2">
                 Localização no Mapa (Arraste o marcador ou clique para definir a posição exata)
@@ -357,6 +338,40 @@ const Settings: React.FC = () => {
                   setLongitude(lng);
                 }}
               />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 dark:text-zinc-400 mb-1">
+                  Latitude
+                </label>
+                <input
+                  type="number"
+                  step="any"
+                  required
+                  disabled
+                  value={latitude}
+                  onChange={(e) => setLatitude(Number(e.target.value))}
+                  placeholder="Ex: -22.122765"
+                  className="w-full text-xs rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-100 dark:bg-zinc-800 py-2.5 px-3 focus:outline-none dark:text-white disabled:opacity-60 disabled:cursor-not-allowed"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 dark:text-zinc-400 mb-1">
+                  Longitude
+                </label>
+                <input
+                  type="number"
+                  step="any"
+                  required
+                  disabled
+                  value={longitude}
+                  onChange={(e) => setLongitude(Number(e.target.value))}
+                  placeholder="Ex: -51.389270"
+                  className="w-full text-xs rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-100 dark:bg-zinc-800 py-2.5 px-3 focus:outline-none dark:text-white disabled:opacity-60 disabled:cursor-not-allowed"
+                />
+              </div>
             </div>
           </div>
 

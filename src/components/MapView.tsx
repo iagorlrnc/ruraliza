@@ -24,9 +24,9 @@ const MapView: React.FC<MapViewProps> = ({ latitude, longitude, popupText, zoom 
   useEffect(() => {
     if (!mapContainerRef.current) return;
 
-    // Standard fallback center: Presidente Prudente, SP (-22.1226, -51.3888)
-    const initialLat = latitude && latitude !== 0 ? latitude : -22.1226;
-    const initialLng = longitude && longitude !== 0 ? longitude : -51.3888;
+    // Standard fallback center: Palmas, TO (-10.1800, -48.3300)
+    const initialLat = latitude && latitude !== 0 ? latitude : -10.1800;
+    const initialLng = longitude && longitude !== 0 ? longitude : -48.3300;
 
     // Initialize map
     const map = L.map(mapContainerRef.current, {

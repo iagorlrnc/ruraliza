@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { api } from '../../services/api';
 import { formatDateTime, formatArea } from '../../utils/format';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
 import { 
   Home, 
   ArrowUpRight, 
@@ -21,6 +22,8 @@ import {
 } from 'lucide-react';
 
 const Dashboard: React.FC = () => {
+  const { isAdmin } = useAuth();
+
   // Fetch metrics
   const { data: metrics, isLoading: loadingMetrics } = useQuery({
     queryKey: ['dashboard-metrics'],
@@ -54,13 +57,14 @@ const Dashboard: React.FC = () => {
   }
 
   const kpis = [
-    { name: 'Total de Imóveis', value: metrics?.totalImoveis || 0, icon: Home, color: 'bg-blue-500/10 text-blue-600', link: '/imoveis' },
-    { name: 'Imóveis para Venda', value: metrics?.imoveisVenda || 0, icon: ArrowUpRight, color: 'bg-emerald-500/10 text-emerald-600', link: '/imoveis' },
-    { name: 'Imóveis para Aluguel', value: metrics?.imoveisAluguel || 0, icon: ArrowDownRight, color: 'bg-amber-500/10 text-amber-600', link: '/imoveis' },
-    { name: 'Visualizações de Imóveis', value: metrics?.totalVisualizacoes || 0, icon: Eye, color: 'bg-indigo-500/10 text-indigo-600', link: '/imoveis' },
+    { name: 'Total de Imóveis', value: metrics?.totalImoveis || 0, icon: Home, color: 'bg-blue-500/10 text-blue-600', link: isAdmin ? '/imoveis' : undefined },
+    { name: 'Imóveis para Venda', value: metrics?.imoveisVenda || 0, icon: ArrowUpRight, color: 'bg-emerald-500/10 text-emerald-600', link: isAdmin ? '/imoveis' : undefined },
+    { name: 'Imóveis para Aluguel', value: metrics?.imoveisAluguel || 0, icon: ArrowDownRight, color: 'bg-amber-500/10 text-amber-600', link: isAdmin ? '/imoveis' : undefined },
+    { name: 'Visualizações de Imóveis', value: metrics?.totalVisualizacoes || 0, icon: Eye, color: 'bg-indigo-500/10 text-indigo-600', link: isAdmin ? '/imoveis' : undefined },
     { name: 'Clientes no CRM', value: metrics?.totalClientes || 0, icon: Users, color: 'bg-teal-500/10 text-teal-600', link: '/clientes' },
-    { name: 'Usuários do Sistema', value: metrics?.totalAdmins || 0, icon: Users, color: 'bg-gray-500/10 text-gray-600', link: '/gestao-usuarios' },
-    { name: 'Leads Gerados no Mês', value: metrics?.leadsMes || 0, icon: Sparkles, color: 'bg-pink-500/10 text-pink-600', link: '/clientes' },
+    ...(isAdmin ? [
+      { name: 'Usuários do Sistema', value: metrics?.totalAdmins || 0, icon: Users, color: 'bg-gray-500/10 text-gray-600', link: '/gestao-usuarios' }
+    ] : []),
     { name: 'Mensagens Recebidas', value: metrics?.totalMensagens || 0, icon: MessageSquare, color: 'bg-red-500/10 text-red-600', link: '/mensagens' },
     { name: 'Mensagens Pendentes', value: metrics?.mensagensPendentes || 0, icon: MessageSquare, color: 'bg-rose-500/10 text-rose-600', link: '/mensagens' },
     { name: 'Agendamentos de Visita', value: metrics?.solicitacoesVisita || 0, icon: Calendar, color: 'bg-cyan-500/10 text-cyan-600', link: '/mensagens' }
@@ -128,12 +132,8 @@ const Dashboard: React.FC = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {kpis.map((kpi) => {
           const Icon = kpi.icon;
-          return (
-            <Link
-              key={kpi.name}
-              to={kpi.link}
-              className="bg-white dark:bg-zinc-900 border border-gray-150 dark:border-zinc-800 hover:border-primary-medium dark:hover:border-zinc-700 p-5 rounded-2xl shadow-sm hover:shadow-md transition-all flex items-center justify-between group cursor-pointer"
-            >
+          const CardContent = (
+            <>
               <div className="space-y-1">
                 <span className="block text-[11px] text-gray-400 font-bold uppercase tracking-wider">{kpi.name}</span>
                 <span className="block text-xl font-poppins font-black text-gray-850 dark:text-white">{kpi.value}</span>
@@ -141,7 +141,24 @@ const Dashboard: React.FC = () => {
               <div className={`h-11 w-11 rounded-xl flex items-center justify-center shrink-0 ${kpi.color} transition-transform group-hover:scale-105`}>
                 <Icon className="h-5 w-5" />
               </div>
+            </>
+          );
+
+          return kpi.link ? (
+            <Link
+              key={kpi.name}
+              to={kpi.link}
+              className="bg-white dark:bg-zinc-900 border border-gray-150 dark:border-zinc-800 hover:border-primary-medium dark:hover:border-zinc-700 p-5 rounded-2xl shadow-sm hover:shadow-md transition-all flex items-center justify-between group cursor-pointer"
+            >
+              {CardContent}
             </Link>
+          ) : (
+            <div
+              key={kpi.name}
+              className="bg-white dark:bg-zinc-900 border border-gray-150 dark:border-zinc-800 p-5 rounded-2xl shadow-sm flex items-center justify-between group"
+            >
+              {CardContent}
+            </div>
           );
         })}
       </div>

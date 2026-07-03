@@ -4,7 +4,8 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
 import { api, isSupabaseConfigured } from '../../services/api';
 import { supabase } from '../../lib/supabase';
-import { Lock, Mail, Eye, EyeOff, User, MapPin, Phone } from 'lucide-react';
+import { Lock, Mail, Eye, EyeOff, User, Phone } from 'lucide-react';
+import { maskPhone } from '../../utils/masks';
 
 const AdminLogin: React.FC = () => {
   const { user, login, error, clearError, isAdmin, isCorretor } = useAuth();
@@ -23,9 +24,33 @@ const AdminLogin: React.FC = () => {
   const [regNome, setRegNome] = useState('');
   const [regEmail, setRegEmail] = useState('');
   const [regTelefone, setRegTelefone] = useState('');
-  const [regCidade, setRegCidade] = useState('');
   const [regPerfil, setRegPerfil] = useState<'Administrador' | 'Corretor'>('Corretor');
   const [regSenha, setRegSenha] = useState('');
+  const [regConfirmarSenha, setRegConfirmarSenha] = useState('');
+  const [showRegSenha, setShowRegSenha] = useState(false);
+  const [showRegConfirmarSenha, setShowRegConfirmarSenha] = useState(false);
+
+  // Password strength calculation
+  const getPasswordStrength = (pwd: string) => {
+    if (!pwd) return { score: 0, label: '', color: 'bg-gray-200', textClass: 'text-gray-400' };
+    
+    let score = 0;
+    if (pwd.length >= 8) score++;
+    if (/[A-Z]/.test(pwd)) score++;
+    if (/[a-z]/.test(pwd)) score++;
+    if (/[0-9]/.test(pwd)) score++;
+    if (/[^A-Za-z0-9]/.test(pwd)) score++;
+    
+    if (score <= 2) {
+      return { score, label: 'Senha Fraca', color: 'bg-red-500', textClass: 'text-red-500' };
+    }
+    if (score <= 4) {
+      return { score, label: 'Senha Média', color: 'bg-yellow-500', textClass: 'text-yellow-500' };
+    }
+    return { score, label: 'Senha Forte', color: 'bg-green-500', textClass: 'text-green-500' };
+  };
+
+  const strength = getPasswordStrength(regSenha);
 
   // If already authenticated and active, redirect to admin home
   useEffect(() => {
@@ -55,8 +80,24 @@ const AdminLogin: React.FC = () => {
 
   const handleRegisterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!regNome || !regEmail || !regSenha) {
-      showToast('Nome, E-mail e Senha são obrigatórios.', 'error');
+    if (!regNome || !regEmail || !regSenha || !regConfirmarSenha) {
+      showToast('Nome, E-mail, Senha e Confirmação de Senha são obrigatórios.', 'error');
+      return;
+    }
+
+    const cleanPhone = regTelefone.replace(/\D/g, '');
+    if (cleanPhone && cleanPhone.length < 10) {
+      showToast('Por favor, insira um telefone válido.', 'error');
+      return;
+    }
+
+    if (strength.score < 5) {
+      showToast('A senha precisa ser forte para prosseguir.', 'error');
+      return;
+    }
+
+    if (regSenha !== regConfirmarSenha) {
+      showToast('As senhas informadas não coincidem.', 'error');
       return;
     }
 
@@ -72,7 +113,7 @@ const AdminLogin: React.FC = () => {
             data: {
               nome: regNome,
               telefone: regTelefone || null,
-              cidade: regCidade || null,
+              cidade: null,
               perfil: regPerfil
             }
           }
@@ -85,7 +126,7 @@ const AdminLogin: React.FC = () => {
           nome: regNome,
           email: regEmail,
           telefone: regTelefone || undefined,
-          cidade: regCidade || undefined,
+          cidade: undefined,
           perfil: regPerfil,
           status: 'Pendente',
           senha: regSenha
@@ -98,9 +139,11 @@ const AdminLogin: React.FC = () => {
       setRegNome('');
       setRegEmail('');
       setRegTelefone('');
-      setRegCidade('');
       setRegPerfil('Corretor');
       setRegSenha('');
+      setRegConfirmarSenha('');
+      setShowRegSenha(false);
+      setShowRegConfirmarSenha(false);
       setIsRegistering(false);
     } catch (err: any) {
       showToast(err.message || 'Erro ao solicitar cadastro.', 'error');
@@ -243,77 +286,128 @@ const AdminLogin: React.FC = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-semibold text-gray-600 dark:text-zinc-400 mb-1">
-                  Telefone
-                </label>
-                <div className="flex items-center rounded-xl border border-gray-200 dark:border-zinc-800 bg-black/[0.03] dark:bg-white/[0.03] px-3 py-2.5 focus-within:border-primary-medium transition-colors">
-                  <Phone className="h-3.5 w-3.5 text-gray-400 shrink-0 mr-2" />
-                  <input
-                    type="text"
-                    value={regTelefone}
-                    onChange={(e) => setRegTelefone(e.target.value)}
-                    placeholder="(18) 99999-9999"
-                    className="w-full text-xs bg-transparent focus:outline-none dark:text-white placeholder-gray-400 login-input"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-gray-600 dark:text-zinc-400 mb-1">
-                  Cidade
-                </label>
-                <div className="flex items-center rounded-xl border border-gray-200 dark:border-zinc-800 bg-black/[0.03] dark:bg-white/[0.03] px-3 py-2.5 focus-within:border-primary-medium transition-colors">
-                  <MapPin className="h-3.5 w-3.5 text-gray-400 shrink-0 mr-2" />
-                  <input
-                    type="text"
-                    value={regCidade}
-                    onChange={(e) => setRegCidade(e.target.value)}
-                    placeholder="Presidente Prudente"
-                    className="w-full text-xs bg-transparent focus:outline-none dark:text-white placeholder-gray-400 login-input"
-                  />
-                </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-600 dark:text-zinc-400 mb-1">
+                Telefone
+              </label>
+              <div className="flex items-center rounded-xl border border-gray-200 dark:border-zinc-800 bg-black/[0.03] dark:bg-white/[0.03] px-3.5 py-2.5 focus-within:border-primary-medium transition-colors">
+                <Phone className="h-3.5 w-3.5 text-gray-400 shrink-0 mr-2" />
+                <input
+                  type="text"
+                  value={regTelefone}
+                  onChange={(e) => setRegTelefone(maskPhone(e.target.value))}
+                  placeholder="(18) 99999-9999"
+                  className="w-full text-xs bg-transparent focus:outline-none dark:text-white placeholder-gray-400 login-input"
+                />
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-semibold text-gray-600 dark:text-zinc-400 mb-1">
-                  Perfil Desejado
-                </label>
-                <select
-                  value={regPerfil}
-                  onChange={(e) => setRegPerfil(e.target.value as any)}
-                  className="w-full text-xs rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-850 py-2.5 px-3 focus:outline-none focus:border-primary-medium dark:text-white"
-                >
-                  <option value="Corretor">Corretor</option>
-                  <option value="Administrador">Administrador</option>
-                </select>
-              </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-600 dark:text-zinc-400 mb-1">
+                Perfil Desejado
+              </label>
+              <select
+                value={regPerfil}
+                onChange={(e) => setRegPerfil(e.target.value as any)}
+                className="w-full text-xs rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-850 py-2.5 px-3 focus:outline-none focus:border-primary-medium dark:text-white"
+              >
+                <option value="Corretor">Corretor</option>
+                <option value="Administrador">Administrador</option>
+              </select>
+            </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-gray-600 dark:text-zinc-400 mb-1">
-                  Senha *
-                </label>
-                <div className="flex items-center rounded-xl border border-gray-200 dark:border-zinc-800 bg-black/[0.03] dark:bg-white/[0.03] px-3 py-2.5 focus-within:border-primary-medium transition-colors">
-                  <Lock className="h-3.5 w-3.5 text-gray-400 shrink-0 mr-2" />
-                  <input
-                    type="password"
-                    required
-                    value={regSenha}
-                    onChange={(e) => setRegSenha(e.target.value)}
-                    placeholder="••••••••"
-                    className="w-full text-xs bg-transparent focus:outline-none dark:text-white placeholder-gray-400 login-input"
-                  />
-                </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-600 dark:text-zinc-400 mb-1">
+                Senha *
+              </label>
+              <div className="flex items-center rounded-xl border border-gray-200 dark:border-zinc-800 bg-black/[0.03] dark:bg-white/[0.03] px-3.5 py-2.5 focus-within:border-primary-medium transition-colors">
+                <Lock className="h-3.5 w-3.5 text-gray-400 shrink-0 mr-2" />
+                <input
+                  type={showRegSenha ? 'text' : 'password'}
+                  required
+                  value={regSenha}
+                  onChange={(e) => setRegSenha(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full text-xs bg-transparent focus:outline-none dark:text-white placeholder-gray-400 login-input"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowRegSenha(!showRegSenha)}
+                  className="text-gray-400 hover:text-gray-600 focus:outline-none shrink-0"
+                >
+                  {showRegSenha ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
               </div>
+              
+              {regSenha && (
+                <div className="mt-2 space-y-1 bg-black/[0.02] dark:bg-white/[0.02] p-3 rounded-xl border border-gray-100 dark:border-zinc-800/50">
+                  <div className="flex justify-between items-center text-[10px] mb-1">
+                    <span className="font-semibold text-gray-500 dark:text-zinc-400">Força da Senha:</span>
+                    <span className={`font-bold ${strength.textClass}`}>{strength.label}</span>
+                  </div>
+                  <div className="h-1.5 w-full bg-gray-100 dark:bg-zinc-800 rounded-full overflow-hidden">
+                    <div 
+                      className={`h-full ${strength.color} transition-all duration-300`} 
+                      style={{ width: `${(strength.score / 5) * 100}%` }}
+                    ></div>
+                  </div>
+                  <div className="text-[9px] text-gray-400 leading-tight space-y-1 mt-2 border-t border-gray-100 dark:border-zinc-800/40 pt-1.5">
+                    <div className="flex items-center gap-1.5">
+                      <span className={regSenha.length >= 8 ? "text-green-500" : "text-gray-400"}>●</span>
+                      <span className={regSenha.length >= 8 ? "text-green-600 dark:text-green-400 font-medium" : "text-gray-500"}>Mínimo de 8 caracteres</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className={/[A-Z]/.test(regSenha) ? "text-green-500" : "text-gray-400"}>●</span>
+                      <span className={/[A-Z]/.test(regSenha) ? "text-green-600 dark:text-green-400 font-medium" : "text-gray-500"}>Pelo menos uma letra maiúscula</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className={/[a-z]/.test(regSenha) ? "text-green-500" : "text-gray-400"}>●</span>
+                      <span className={/[a-z]/.test(regSenha) ? "text-green-600 dark:text-green-400 font-medium" : "text-gray-500"}>Pelo menos uma letra minúscula</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className={/[0-9]/.test(regSenha) ? "text-green-500" : "text-gray-400"}>●</span>
+                      <span className={/[0-9]/.test(regSenha) ? "text-green-600 dark:text-green-400 font-medium" : "text-gray-500"}>Pelo menos um número</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className={/[^A-Za-z0-9]/.test(regSenha) ? "text-green-500" : "text-gray-400"}>●</span>
+                      <span className={/[^A-Za-z0-9]/.test(regSenha) ? "text-green-600 dark:text-green-400 font-medium" : "text-gray-500"}>Pelo menos um caractere especial (ex: @, #, $, %)</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-gray-600 dark:text-zinc-400 mb-1">
+                Confirmação de Senha *
+              </label>
+              <div className="flex items-center rounded-xl border border-gray-200 dark:border-zinc-800 bg-black/[0.03] dark:bg-white/[0.03] px-3.5 py-2.5 focus-within:border-primary-medium transition-colors">
+                <Lock className="h-3.5 w-3.5 text-gray-400 shrink-0 mr-2" />
+                <input
+                  type={showRegConfirmarSenha ? 'text' : 'password'}
+                  required
+                  value={regConfirmarSenha}
+                  onChange={(e) => setRegConfirmarSenha(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full text-xs bg-transparent focus:outline-none dark:text-white placeholder-gray-400 login-input"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowRegConfirmarSenha(!showRegConfirmarSenha)}
+                  className="text-gray-400 hover:text-gray-600 focus:outline-none shrink-0"
+                >
+                  {showRegConfirmarSenha ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+              {regConfirmarSenha && regSenha !== regConfirmarSenha && (
+                <p className="text-[10px] text-red-500 font-semibold mt-1">As senhas não coincidem.</p>
+              )}
             </div>
 
             <button
               type="submit"
-              disabled={submitting}
-              className="w-full rounded-xl bg-primary-dark hover:bg-primary-medium text-brand-beige py-3 text-xs font-bold transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer disabled:opacity-55"
+              disabled={submitting || strength.score < 5 || regSenha !== regConfirmarSenha}
+              className="w-full rounded-xl bg-primary-dark hover:bg-primary-medium text-brand-beige py-3 text-xs font-bold transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {submitting ? 'Enviando Solicitação...' : 'Solicitar Cadastro'}
             </button>

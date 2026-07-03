@@ -5,6 +5,7 @@ import { useToast } from '../../contexts/ToastContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { Plus, Edit2, Trash2, Save, User, Mail, Phone } from 'lucide-react';
 import { Vendedor } from '../../types';
+import { maskPhone, maskCreci } from '../../utils/masks';
 
 const SellersList: React.FC = () => {
   const { showToast } = useToast();
@@ -97,6 +98,12 @@ const SellersList: React.FC = () => {
       return;
     }
 
+    const cleanPhone = telefone.replace(/\D/g, '');
+    if (cleanPhone && cleanPhone.length < 10) {
+      showToast('Por favor, insira um telefone válido.', 'error');
+      return;
+    }
+
     saveMutation.mutate({
       id: editingId || undefined,
       nome,
@@ -183,7 +190,7 @@ const SellersList: React.FC = () => {
               <input
                 type="text"
                 value={telefone}
-                onChange={(e) => setTelefone(e.target.value)}
+                onChange={(e) => setTelefone(maskPhone(e.target.value))}
                 placeholder="Ex: (18) 99888-7766"
                 className="w-full text-xs rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-850 py-2.5 px-3 focus:outline-none focus:border-primary-medium dark:text-white"
               />
@@ -238,7 +245,7 @@ const SellersList: React.FC = () => {
               <input
                 type="text"
                 value={creci}
-                onChange={(e) => setCreci(e.target.value)}
+                onChange={(e) => setCreci(maskCreci(e.target.value))}
                 placeholder="Ex: 12345-F"
                 className="w-full text-xs rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-850 py-2.5 px-3 focus:outline-none focus:border-primary-medium dark:text-white"
               />

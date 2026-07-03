@@ -165,7 +165,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             nome: 'Renato Silva',
             email: 'contato@ruralizanegocios.com.br',
             telefone: '(11) 99999-9999',
-            cidade: 'Presidente Prudente',
+            cidade: 'Palmas',
             perfil: 'Administrador',
             status: 'Ativo',
             created_at: new Date().toISOString(),
