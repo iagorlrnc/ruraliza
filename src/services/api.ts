@@ -291,6 +291,7 @@ export const api = {
       nome: user.nome,
       telefone: user.telefone,
       cidade: user.cidade,
+      creci: user.creci,
       perfil: user.perfil || 'Cliente',
       status: user.status || 'Ativo',
       updated_at: new Date().toISOString()
@@ -417,6 +418,7 @@ export const api = {
         email: row.tabela_usuarios.email,
         telefone: row.tabela_usuarios.telefone,
         cidade: row.tabela_usuarios.cidade,
+        creci: row.tabela_usuarios.creci,
         perfil: row.tabela_usuarios.perfil,
         status: row.tabela_usuarios.status,
         created_at: row.tabela_usuarios.created_at,
@@ -690,7 +692,7 @@ export const api = {
         totalVisualizacoes: totalDatabaseViews
       };
     } catch (e) {
-      console.warn('Failed to fetch metrics from Supabase, using mockDb fallback:', e);
+      console.warn('Falha ao obter métricas do Supabase; utilizando mockDb como alternativa:', e);
       return mockDb.getMetrics();
     }
   },
@@ -736,7 +738,7 @@ export const api = {
       .single();
 
     if (error) {
-      console.error('Error saving configurations to Supabase:', error);
+      console.error('Erro ao salvar as configurações no Supabase:', error);
       throw error;
     }
     return {

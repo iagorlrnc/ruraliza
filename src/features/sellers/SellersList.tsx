@@ -306,26 +306,21 @@ const SellersList: React.FC = () => {
             >
               {/* Photo & Main Role */}
               <div>
-                <div className="relative h-44 bg-gray-100 dark:bg-zinc-950 overflow-hidden">
-                  {vendedor.foto ? (
-                    <img
-                      src={vendedor.foto}
-                      alt={vendedor.nome}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-primary-dark/10 text-primary-dark dark:text-primary-light">
-                      <User className="h-12 w-12" />
-                    </div>
-                  )}
-                  {vendedor.creci && (
-                    <span className="absolute bottom-3 right-3 bg-primary-dark/85 text-brand-beige px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider font-sans">
-                      CRECI: {vendedor.creci}
-                    </span>
-                  )}
+                <div className="flex justify-center pt-6">
+                  <div className="h-28 w-28 rounded-full overflow-hidden border-2 border-primary-medium/20 shadow-inner bg-gray-100 dark:bg-zinc-950 flex items-center justify-center shrink-0">
+                    {vendedor.foto ? (
+                      <img
+                        src={vendedor.foto}
+                        alt={vendedor.nome}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <User className="h-12 w-12 text-gray-400" />
+                    )}
+                  </div>
                 </div>
 
-                <div className="p-5 space-y-3">
+                <div className="p-5 text-center space-y-3">
                   <div>
                     <h4 className="font-poppins text-sm font-bold text-gray-800 dark:text-white leading-tight">
                       {vendedor.nome}
@@ -343,7 +338,12 @@ const SellersList: React.FC = () => {
 
               {/* Contacts & Actions */}
               <div className="p-5 pt-0 border-t border-gray-100 dark:border-zinc-800/60 mt-auto">
-                <div className="py-3 space-y-1.5 text-[11px] text-gray-500 dark:text-zinc-400 font-sans">
+                <div className="py-3 space-y-1.5 text-[11px] text-gray-500 dark:text-zinc-400 font-sans text-left">
+                  {vendedor.creci && (
+                    <div className="flex items-center gap-1.5 text-[10px] font-bold text-gray-400 uppercase tracking-wider font-sans">
+                      <span>CRECI: {vendedor.creci}</span>
+                    </div>
+                  )}
                   {vendedor.telefone && (
                     <div className="flex items-center gap-1.5">
                       <Phone className="h-3 w-3 text-primary-medium" />

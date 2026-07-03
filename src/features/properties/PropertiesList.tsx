@@ -5,7 +5,8 @@ import { api } from '../../services/api';
 import { formatCurrency, formatArea } from '../../utils/format';
 import { useToast } from '../../contexts/ToastContext';
 import { useAuth } from '../../contexts/AuthContext';
-import { Plus, Edit2, Trash2, Search, Star, Eye, Tag } from 'lucide-react';
+import { Plus, Edit2, Trash2, Search, Star, Eye, Tag, X } from 'lucide-react';
+import DetalheImovel from '../../pages/DetalheImovel';
 
 const PropertiesList: React.FC = () => {
   const navigate = useNavigate();
@@ -13,6 +14,7 @@ const PropertiesList: React.FC = () => {
   const { isAdmin } = useAuth();
   const queryClient = useQueryClient();
   const [busca, setBusca] = useState('');
+  const [selectedPropertyId, setSelectedPropertyId] = useState<string | null>(null);
 
   // Fetch properties
   const { data: properties = [], isLoading } = useQuery({
@@ -117,7 +119,11 @@ const PropertiesList: React.FC = () => {
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-zinc-800 font-sans">
                 {filteredProperties.map((prop) => (
-                  <tr key={prop.id} className="hover:bg-primary-medium/5 dark:hover:bg-zinc-800/80 transition-colors cursor-pointer">
+                  <tr 
+                    key={prop.id} 
+                    onClick={() => setSelectedPropertyId(prop.id)}
+                    className="hover:bg-primary-medium/5 dark:hover:bg-zinc-800/80 transition-colors cursor-pointer"
+                  >
                     <td className="px-6 py-4 font-bold text-primary-medium dark:text-primary-light">
                       {prop.codigo}
                     </td>
@@ -160,14 +166,14 @@ const PropertiesList: React.FC = () => {
                     {isAdmin && (
                       <td className="px-6 py-4 text-right whitespace-nowrap space-x-1.5">
                         <button
-                          onClick={() => navigate(`/imoveis/editar/${prop.id}`)}
+                          onClick={(e) => { e.stopPropagation(); navigate(`/imoveis/editar/${prop.id}`); }}
                           className="p-1.5 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-lg text-gray-600 dark:text-zinc-350 transition-colors inline-flex items-center cursor-pointer"
                           title="Editar Imóvel"
                         >
                           <Edit2 className="h-3.5 w-3.5" />
                         </button>
                         <button
-                          onClick={() => handleDelete(prop.id, prop.codigo)}
+                          onClick={(e) => { e.stopPropagation(); handleDelete(prop.id, prop.codigo); }}
                           className="p-1.5 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-lg text-red-600 transition-colors inline-flex items-center cursor-pointer"
                           title="Excluir Imóvel"
                         >
@@ -179,6 +185,35 @@ const PropertiesList: React.FC = () => {
                 ))}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {/* Simulated Public Detail Modal */}
+      {selectedPropertyId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-brand-beige dark:bg-zinc-950 w-full max-w-7xl h-[90vh] rounded-3xl overflow-hidden shadow-2xl flex flex-col border border-gray-200 dark:border-zinc-800 animate-in zoom-in-95 duration-200">
+            {/* Modal Header */}
+            <div className="px-6 py-4 border-b border-gray-150 dark:border-zinc-800 flex justify-between items-center bg-white dark:bg-zinc-900 shrink-0">
+              <div className="flex items-center gap-2.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-primary-medium animate-pulse" />
+                <div>
+                  <h3 className="font-poppins text-xs sm:text-sm font-bold text-gray-800 dark:text-white">
+                    Visualização do Anúncio
+                  </h3>
+                </div>
+              </div>
+              <button 
+                onClick={() => setSelectedPropertyId(null)}
+                className="rounded-xl border border-gray-200 dark:border-zinc-800 hover:bg-gray-50 dark:hover:bg-zinc-800 text-gray-600 dark:text-zinc-350 p-2.5 text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm cursor-pointer"
+              >
+                <X className="h-4 w-4" /> Fechar
+              </button>
+            </div>
+            {/* Modal Body */}
+            <div className="flex-1 overflow-y-auto">
+              <DetalheImovel id={selectedPropertyId} isPreview={true} onClose={() => setSelectedPropertyId(null)} />
+            </div>
           </div>
         </div>
       )}

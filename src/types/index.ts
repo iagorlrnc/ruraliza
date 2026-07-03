@@ -7,6 +7,7 @@ export interface Usuario {
   email: string;
   telefone?: string;
   cidade?: string;
+  creci?: string;
   perfil: PerfilUsuario;
   status: StatusUsuario;
   senha?: string;

@@ -53,17 +53,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.user) {
+          const wasRegistering = sessionStorage.getItem('ruraliza_is_registering');
+          if (wasRegistering) {
+            sessionStorage.removeItem('ruraliza_is_registering');
+            await supabase.auth.signOut();
+            setUser(null);
+            return;
+          }
+
           const profile = await api.getUserById(session.user.id);
           if (profile && (profile.perfil === 'Administrador' || profile.perfil === 'Corretor')) {
             if (profile.status === 'Ativo') {
               setUser(profile);
             } else if (profile.status === 'Pendente') {
-              const wasRegistering = sessionStorage.getItem('ruraliza_is_registering');
-              if (wasRegistering) {
-                sessionStorage.removeItem('ruraliza_is_registering');
-              } else {
-                setError('Seu cadastro está pendente de aprovação pelo administrador.');
-              }
+              setError('Seu cadastro está pendente de aprovação pelo administrador.');
               await supabase.auth.signOut();
               setUser(null);
             } else {
@@ -88,6 +91,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_IN' && session?.user) {
+        const wasRegistering = sessionStorage.getItem('ruraliza_is_registering');
+        if (wasRegistering) {
+          sessionStorage.removeItem('ruraliza_is_registering');
+          await supabase.auth.signOut();
+          setUser(null);
+          return;
+        }
+
         setLoading(true);
         try {
           const profile = await api.getUserById(session.user.id);
@@ -95,12 +106,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             if (profile.status === 'Ativo') {
               setUser(profile);
             } else if (profile.status === 'Pendente') {
-              const wasRegistering = sessionStorage.getItem('ruraliza_is_registering');
-              if (wasRegistering) {
-                sessionStorage.removeItem('ruraliza_is_registering');
-              } else {
-                setError('Seu cadastro está pendente de aprovação pelo administrador.');
-              }
+              setError('Seu cadastro está pendente de aprovação pelo administrador.');
               await supabase.auth.signOut();
               setUser(null);
             } else {
@@ -187,7 +193,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         password
       });
       if (signInError) {
-        setError(signInError.message);
+        const translatedMessage = signInError.message === 'Invalid login credentials'
+          ? 'E-mail ou senha incorretos.'
+          : signInError.message;
+        setError(translatedMessage);
       }
     } catch (e: any) {
       setError(e.message || 'Erro inesperado durante a autenticação.');

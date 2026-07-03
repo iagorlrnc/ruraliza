@@ -12,7 +12,6 @@ import {
   MessageSquare, 
   Eye, 
   Calendar, 
-  Sparkles,
   ChevronRight,
   TrendingUp,
   BarChart3,

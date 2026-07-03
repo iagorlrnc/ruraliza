@@ -1,7 +1,8 @@
 import { useEffect } from 'react';
 
-export const useSEO = (title: string, description: string) => {
+export const useSEO = (title: string, description: string, enabled = true) => {
   useEffect(() => {
+    if (!enabled) return;
     document.title = `${title} | Ruraliza Negócios`;
     
     // Update or create meta description
@@ -21,5 +22,5 @@ export const useSEO = (title: string, description: string) => {
     
     let ogDesc = document.querySelector('meta[property="og:description"]');
     if (ogDesc) ogDesc.setAttribute('content', description);
-  }, [title, description]);
+  }, [title, description, enabled]);
 };

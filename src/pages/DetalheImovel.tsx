@@ -116,8 +116,15 @@ const cleanDescricao = (desc: string): string => {
   return clean;
 };
 
-const DetalheImovel: React.FC = () => {
-  const { id } = useParams<{ id: string }>();
+interface DetalheImovelProps {
+  id?: string;
+  isPreview?: boolean;
+  onClose?: () => void;
+}
+
+const DetalheImovel: React.FC<DetalheImovelProps> = ({ id: idProp, isPreview = false, onClose }) => {
+  const { id: idParam } = useParams<{ id: string }>();
+  const id = idProp || idParam;
   const { showToast } = useToast();
   const [activeImageIndex, setActiveImageIndex] = useState(0);
 
@@ -146,7 +153,7 @@ const DetalheImovel: React.FC = () => {
 
   // Increment view count only once per user/property using localStorage tracking
   useEffect(() => {
-    if (id) {
+    if (id && !isPreview) {
       const viewedKey = 'ruraliza_viewed_properties';
       try {
         const viewedList = JSON.parse(localStorage.getItem(viewedKey) || '[]');
@@ -164,7 +171,7 @@ const DetalheImovel: React.FC = () => {
         );
       }
     }
-  }, [id]);
+  }, [id, isPreview]);
 
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
@@ -215,6 +222,11 @@ const DetalheImovel: React.FC = () => {
       radius: 5000
     }).addTo(map);
 
+    // Invalidate size to fix Leaflet map render issue inside modal container
+    setTimeout(() => {
+      map.invalidateSize();
+    }, 200);
+
     return () => {
       if (mapRef.current) {
         mapRef.current.remove();
@@ -225,7 +237,8 @@ const DetalheImovel: React.FC = () => {
 
   useSEO(
     property ? property.titulo : 'Carregando Imóvel...',
-    property ? property.descricao.substring(0, 160) : 'Carregando detalhes da propriedade rural...'
+    property ? property.descricao.substring(0, 160) : 'Carregando detalhes da propriedade rural...',
+    !isPreview
   );
 
   // Mutations
@@ -327,9 +340,18 @@ const DetalheImovel: React.FC = () => {
       <div className="mx-auto max-w-7xl px-4 py-20 text-center space-y-4">
         <h2 className="font-poppins text-lg font-bold text-red-600">Imóvel não encontrado</h2>
         <p className="text-xs text-gray-500">Este imóvel pode ter sido desativado ou o código está inválido.</p>
-        <Link to="/imoveis" className="inline-flex items-center gap-1 text-primary-medium hover:text-primary-dark font-semibold text-xs">
-          <ArrowLeft className="h-3.5 w-3.5" /> Voltar para imóveis
-        </Link>
+        {isPreview ? (
+          <button 
+            onClick={onClose} 
+            className="inline-flex items-center gap-1 text-primary-medium hover:text-primary-dark font-semibold text-xs cursor-pointer"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" /> Fechar Visualização
+          </button>
+        ) : (
+          <Link to="/imoveis" className="inline-flex items-center gap-1 text-primary-medium hover:text-primary-dark font-semibold text-xs">
+            <ArrowLeft className="h-3.5 w-3.5" /> Voltar para imóveis
+          </Link>
+        )}
       </div>
     );
   }
@@ -354,12 +376,21 @@ const DetalheImovel: React.FC = () => {
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 space-y-8 text-left">
       {/* Back button */}
       <div>
-        <Link 
-          to="/imoveis" 
-          className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-500 hover:text-primary-medium transition-colors"
-        >
-          <ArrowLeft className="h-4 w-4" /> Voltar para a listagem
-        </Link>
+        {isPreview ? (
+          <button 
+            onClick={onClose} 
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-500 hover:text-primary-medium transition-colors cursor-pointer"
+          >
+            <ArrowLeft className="h-4 w-4" /> Fechar Visualização
+          </button>
+        ) : (
+          <Link 
+            to="/imoveis" 
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-500 hover:text-primary-medium transition-colors"
+          >
+            <ArrowLeft className="h-4 w-4" /> Voltar para a listagem
+          </Link>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

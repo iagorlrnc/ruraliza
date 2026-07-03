@@ -537,6 +537,7 @@ export const mockDb = {
         email: emailLower,
         telefone: user.telefone,
         cidade: user.cidade || '',
+        creci: user.creci || '',
         perfil: user.perfil || 'Cliente',
         status: user.status || 'Ativo',
         senha: user.senha || undefined,

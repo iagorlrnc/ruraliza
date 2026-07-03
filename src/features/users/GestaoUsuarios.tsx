@@ -9,7 +9,7 @@ import {
   Save, AlertCircle, XCircle, Trash2 
 } from 'lucide-react';
 import { Usuario, PerfilUsuario, StatusUsuario } from '../../types';
-import { maskPhone } from '../../utils/masks';
+import { maskPhone, maskCreci } from '../../utils/masks';
 
 const GestaoUsuarios: React.FC = () => {
   const { showToast } = useToast();
@@ -26,10 +26,12 @@ const GestaoUsuarios: React.FC = () => {
   const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
   const [telefone, setTelefone] = useState('');
-  const [cidade, setCidade] = useState('');
+  const [creci, setCreci] = useState('');
   const [perfil, setPerfil] = useState<PerfilUsuario>('Corretor');
   const [status, setStatus] = useState<StatusUsuario>('Pendente');
   const [senha, setSenha] = useState('');
+  const [confirmacaoSenha, setConfirmacaoSenha] = useState('');
+  const [redefinirSenha, setRedefinirSenha] = useState(false);
 
   // Fetch all users
   const { data: users = [], isLoading } = useQuery({
@@ -99,16 +101,25 @@ const GestaoUsuarios: React.FC = () => {
     setNome(u.nome);
     setEmail(u.email);
     setTelefone(u.telefone || '');
-    setCidade(u.cidade || '');
+    setCreci(u.creci || '');
     setPerfil(u.perfil);
     setStatus(u.status);
-    setSenha(u.senha || '');
+    setSenha('');
+    setConfirmacaoSenha('');
+    setRedefinirSenha(false);
     setModalOpen(true);
   };
 
   const closeModal = () => {
     setModalOpen(false);
     setEditingUser(null);
+    setNome('');
+    setEmail('');
+    setTelefone('');
+    setCreci('');
+    setSenha('');
+    setConfirmacaoSenha('');
+    setRedefinirSenha(false);
   };
 
   const handleSave = (e: React.FormEvent) => {
@@ -124,7 +135,16 @@ const GestaoUsuarios: React.FC = () => {
       return;
     }
 
-    if (!editingUser?.id && !senha) {
+    if (redefinirSenha) {
+      if (!senha) {
+        showToast('A senha é obrigatória se a definição/redefinição estiver ativa.', 'error');
+        return;
+      }
+      if (senha !== confirmacaoSenha) {
+        showToast('As senhas não coincidem.', 'error');
+        return;
+      }
+    } else if (!editingUser?.id) {
       showToast('A senha é obrigatória para cadastrar um novo usuário.', 'error');
       return;
     }
@@ -134,12 +154,13 @@ const GestaoUsuarios: React.FC = () => {
       nome,
       email,
       telefone,
-      cidade,
+      cidade: editingUser?.cidade,
+      creci,
       perfil,
       status,
     };
 
-    if (senha) {
+    if (redefinirSenha && senha) {
       payload.senha = senha;
     }
 
@@ -244,7 +265,7 @@ const GestaoUsuarios: React.FC = () => {
                 <tr>
                   <th className="px-6 py-4">Nome</th>
                   <th className="px-6 py-4">Contato</th>
-                  <th className="px-6 py-4">Cidade</th>
+                  <th className="px-6 py-4">CRECI</th>
                   <th className="px-6 py-4">Cadastro</th>
                   <th className="px-6 py-4">Perfil</th>
                   <th className="px-6 py-4">Status</th>
@@ -263,8 +284,8 @@ const GestaoUsuarios: React.FC = () => {
                         <span className="block">{formatPhone(u.telefone)}</span>
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-gray-500 dark:text-zinc-400">
-                      {u.cidade || '-'}
+                    <td className="px-6 py-4 text-gray-500 dark:text-zinc-400 font-mono font-medium">
+                      {u.creci || '-'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       {formatDate(u.created_at)}
@@ -400,13 +421,13 @@ const GestaoUsuarios: React.FC = () => {
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-gray-600 dark:text-zinc-400 mb-1">
-                    Cidade
+                    CRECI
                   </label>
                   <input
                     type="text"
-                    value={cidade}
-                    onChange={(e) => setCidade(e.target.value)}
-                    placeholder="Ex: Palmas"
+                    value={creci}
+                    onChange={(e) => setCreci(maskCreci(e.target.value))}
+                    placeholder="Ex: 12345-F"
                     className="w-full text-xs rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-850 py-2.5 px-3 focus:outline-none focus:border-primary-medium dark:text-white"
                   />
                 </div>
@@ -444,17 +465,56 @@ const GestaoUsuarios: React.FC = () => {
                 </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-gray-600 dark:text-zinc-400 mb-1">
-                  Senha de Acesso {editingUser && '(Deixe em branco para manter a atual)'}
-                </label>
+              {/* Checkbox Redefinir Senha */}
+              <div className="flex items-center gap-2 py-1">
                 <input
-                  type="password"
-                  value={senha}
-                  onChange={(e) => setSenha(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full text-xs rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-850 py-2.5 px-3 focus:outline-none focus:border-primary-medium dark:text-white"
+                  type="checkbox"
+                  id="redefinirSenha"
+                  checked={redefinirSenha}
+                  onChange={(e) => {
+                    setRedefinirSenha(e.target.checked);
+                    if (!e.target.checked) {
+                      setSenha('');
+                      setConfirmacaoSenha('');
+                    }
+                  }}
+                  className="rounded border-gray-300 text-primary-medium focus:ring-primary-medium h-4 w-4 cursor-pointer"
                 />
+                <label htmlFor="redefinirSenha" className="text-xs font-semibold text-gray-700 dark:text-zinc-350 cursor-pointer select-none">
+                  {editingUser ? 'Redefinir Senha' : 'Definir Senha de Acesso'}
+                </label>
+              </div>
+
+              {/* Password inputs (Senha and Confirmar Senha) */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className={`block text-xs font-semibold mb-1 ${redefinirSenha ? 'text-gray-600 dark:text-zinc-400' : 'text-gray-400 dark:text-zinc-600'}`}>
+                    Senha de Acesso {redefinirSenha && '*'}
+                  </label>
+                  <input
+                    type="password"
+                    required={redefinirSenha && !editingUser}
+                    disabled={!redefinirSenha}
+                    value={senha}
+                    onChange={(e) => setSenha(e.target.value)}
+                    placeholder="••••••••"
+                    className="w-full text-xs rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-850 py-2.5 px-3 focus:outline-none focus:border-primary-medium dark:text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                  />
+                </div>
+                <div>
+                  <label className={`block text-xs font-semibold mb-1 ${redefinirSenha ? 'text-gray-600 dark:text-zinc-400' : 'text-gray-400 dark:text-zinc-600'}`}>
+                    Confirmar Senha {redefinirSenha && '*'}
+                  </label>
+                  <input
+                    type="password"
+                    required={redefinirSenha}
+                    disabled={!redefinirSenha}
+                    value={confirmacaoSenha}
+                    onChange={(e) => setConfirmacaoSenha(e.target.value)}
+                    placeholder="••••••••"
+                    className="w-full text-xs rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-850 py-2.5 px-3 focus:outline-none focus:border-primary-medium dark:text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                  />
+                </div>
               </div>
 
               {isSelfEditing && (

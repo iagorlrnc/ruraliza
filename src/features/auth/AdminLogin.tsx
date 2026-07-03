@@ -4,13 +4,15 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
 import { api, isSupabaseConfigured } from '../../services/api';
 import { supabase } from '../../lib/supabase';
-import { Lock, Mail, Eye, EyeOff, User, Phone } from 'lucide-react';
-import { maskPhone } from '../../utils/masks';
+import { Lock, Mail, Eye, EyeOff, User, Phone, ShieldCheck } from 'lucide-react';
+import { maskPhone, maskCreci } from '../../utils/masks';
+import { useTheme } from '../../contexts/ThemeContext';
 
 const AdminLogin: React.FC = () => {
   const { user, login, error, clearError, isAdmin, isCorretor } = useAuth();
   const { showToast } = useToast();
   const navigate = useNavigate();
+  const { darkMode } = useTheme();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -25,6 +27,7 @@ const AdminLogin: React.FC = () => {
   const [regEmail, setRegEmail] = useState('');
   const [regTelefone, setRegTelefone] = useState('');
   const [regPerfil, setRegPerfil] = useState<'Administrador' | 'Corretor'>('Corretor');
+  const [regCreci, setRegCreci] = useState('');
   const [regSenha, setRegSenha] = useState('');
   const [regConfirmarSenha, setRegConfirmarSenha] = useState('');
   const [showRegSenha, setShowRegSenha] = useState(false);
@@ -114,12 +117,16 @@ const AdminLogin: React.FC = () => {
               nome: regNome,
               telefone: regTelefone || null,
               cidade: null,
+              creci: regCreci || null,
               perfil: regPerfil
             }
           }
         });
 
         if (signUpError) throw signUpError;
+        
+        // Immediately sign out to prevent auto-login after signup
+        await supabase.auth.signOut();
       } else {
         // Mock Mode: save directly
         await api.saveUser({
@@ -127,6 +134,7 @@ const AdminLogin: React.FC = () => {
           email: regEmail,
           telefone: regTelefone || undefined,
           cidade: undefined,
+          creci: regCreci || undefined,
           perfil: regPerfil,
           status: 'Pendente',
           senha: regSenha
@@ -140,6 +148,7 @@ const AdminLogin: React.FC = () => {
       setRegEmail('');
       setRegTelefone('');
       setRegPerfil('Corretor');
+      setRegCreci('');
       setRegSenha('');
       setRegConfirmarSenha('');
       setShowRegSenha(false);
@@ -161,7 +170,7 @@ const AdminLogin: React.FC = () => {
   }, [error, clearError, showToast]);
 
   return (
-    <div className="min-h-screen w-screen flex items-center justify-center bg-gradient-to-tr from-primary-dark via-primary-medium to-emerald-950 p-4">
+    <div className="min-h-screen w-full relative overflow-x-hidden flex items-center justify-center bg-gradient-to-tr from-primary-dark via-primary-medium to-emerald-950 p-4">
       <div className="absolute inset-0 overflow-hidden opacity-10">
         <div className="absolute -top-40 -right-40 h-96 w-96 rounded-full bg-primary-light blur-3xl"></div>
         <div className="absolute -bottom-40 -left-40 h-96 w-96 rounded-full bg-primary-light blur-3xl"></div>
@@ -172,7 +181,7 @@ const AdminLogin: React.FC = () => {
         <div className="text-center space-y-2">
           <div className="flex items-center justify-center">
             <img 
-              src="/logo.png" 
+              src={darkMode ? "/logo.png" : "/logolight.png"} 
               alt="Ruraliza" 
               className="h-8 sm:h-12 w-auto object-contain"
             />
@@ -297,6 +306,22 @@ const AdminLogin: React.FC = () => {
                   value={regTelefone}
                   onChange={(e) => setRegTelefone(maskPhone(e.target.value))}
                   placeholder="(18) 99999-9999"
+                  className="w-full text-xs bg-transparent focus:outline-none dark:text-white placeholder-gray-400 login-input"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-gray-600 dark:text-zinc-400 mb-1">
+                CRECI
+              </label>
+              <div className="flex items-center rounded-xl border border-gray-200 dark:border-zinc-800 bg-black/[0.03] dark:bg-white/[0.03] px-3.5 py-2.5 focus-within:border-primary-medium transition-colors">
+                <ShieldCheck className="h-4 w-4 text-gray-400 shrink-0 mr-2" />
+                <input
+                  type="text"
+                  value={regCreci}
+                  onChange={(e) => setRegCreci(maskCreci(e.target.value))}
+                  placeholder="Ex: 12345-F"
                   className="w-full text-xs bg-transparent focus:outline-none dark:text-white placeholder-gray-400 login-input"
                 />
               </div>
