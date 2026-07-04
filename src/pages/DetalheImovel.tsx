@@ -5,6 +5,7 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import { api } from '../services/api';
 import { useToast } from '../contexts/ToastContext';
 import { useSEO } from '../hooks/useSEO';
+import CaptchaWidget from '../components/CaptchaWidget';
 import { formatCurrency, formatArea } from '../utils/format';
 import { ESTADOS_BRASIL } from '../utils/estados';
 import { maskPhone } from '../utils/masks';
@@ -120,9 +121,10 @@ interface DetalheImovelProps {
   id?: string;
   isPreview?: boolean;
   onClose?: () => void;
+  hideInterestForm?: boolean;
 }
 
-const DetalheImovel: React.FC<DetalheImovelProps> = ({ id: idProp, isPreview = false, onClose }) => {
+const DetalheImovel: React.FC<DetalheImovelProps> = ({ id: idProp, isPreview = false, onClose, hideInterestForm = false }) => {
   const { id: idParam } = useParams<{ id: string }>();
   const id = idProp || idParam;
   const { showToast } = useToast();
@@ -137,6 +139,16 @@ const DetalheImovel: React.FC<DetalheImovelProps> = ({ id: idProp, isPreview = f
   const [tipoInteresse, setTipoInteresse] = useState<'contato' | 'visita'>('contato');
   const [dataVisita, setDataVisita] = useState('');
   const [mensagem, setMensagem] = useState('');
+
+  // Captcha State
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [captchaKey, setCaptchaKey] = useState(0);
+
+  // Reset captcha when switching tab
+  useEffect(() => {
+    setCaptchaToken(null);
+    setCaptchaKey(prev => prev + 1);
+  }, [tipoInteresse]);
 
   // Fetch property details
   const { data: property, isLoading, error } = useQuery({
@@ -243,7 +255,8 @@ const DetalheImovel: React.FC<DetalheImovelProps> = ({ id: idProp, isPreview = f
 
   // Mutations
   const contactMutation = useMutation({
-    mutationFn: api.registrarMensagemContato,
+    mutationFn: (variables: Parameters<typeof api.registrarMensagemContato>[0]) =>
+      api.registrarMensagemContato(variables, captchaToken || undefined),
     onSuccess: () => {
       showToast('Mensagem enviada com sucesso! Logo um consultor responderá.', 'success');
       setNome('');
@@ -252,14 +265,19 @@ const DetalheImovel: React.FC<DetalheImovelProps> = ({ id: idProp, isPreview = f
       setMensagem('');
       setCidade('');
       setEstado('');
+      setCaptchaToken(null);
+      setCaptchaKey(prev => prev + 1);
     },
     onError: () => {
       showToast('Ocorreu um erro ao registrar seu interesse. Tente novamente.', 'error');
+      setCaptchaToken(null);
+      setCaptchaKey(prev => prev + 1);
     }
   });
 
   const visitMutation = useMutation({
-    mutationFn: api.registrarSolicitacaoVisita,
+    mutationFn: (variables: Parameters<typeof api.registrarSolicitacaoVisita>[0]) =>
+      api.registrarSolicitacaoVisita(variables, captchaToken || undefined),
     onSuccess: () => {
       showToast('Solicitação de visita agendada com sucesso! Aguarde nossa confirmação.', 'success');
       setNome('');
@@ -269,9 +287,13 @@ const DetalheImovel: React.FC<DetalheImovelProps> = ({ id: idProp, isPreview = f
       setMensagem('');
       setCidade('');
       setEstado('');
+      setCaptchaToken(null);
+      setCaptchaKey(prev => prev + 1);
     },
     onError: () => {
       showToast('Ocorreu um erro ao registrar sua visita. Tente novamente.', 'error');
+      setCaptchaToken(null);
+      setCaptchaKey(prev => prev + 1);
     }
   });
 
@@ -279,6 +301,11 @@ const DetalheImovel: React.FC<DetalheImovelProps> = ({ id: idProp, isPreview = f
     e.preventDefault();
     if (!nome || !email || !cidade || !estado) {
       showToast('Por favor, preencha os campos obrigatórios (Nome, E-mail, Cidade e Estado).', 'error');
+      return;
+    }
+
+    if (!captchaToken) {
+      showToast('Por favor, confirme que você não é um robô.', 'error');
       return;
     }
 
@@ -393,82 +420,85 @@ const DetalheImovel: React.FC<DetalheImovelProps> = ({ id: idProp, isPreview = f
         )}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Main Content (2 cols) */}
-        <div className="lg:col-span-2 space-y-8">
-          {/* Main Gallery */}
-          <div className="space-y-4">
-            <div className="relative aspect-[16/9] overflow-hidden rounded-3xl bg-gray-100 border border-gray-200 dark:border-zinc-800">
-              <img
-                src={property.imagens && property.imagens.length > 0 ? property.imagens[activeImageIndex].url : '/imagesub.png'}
-                alt={property.titulo}
-                className="w-full h-full object-cover transition-all"
-              />
-              <button
-                onClick={handleShare}
-                className="absolute top-4 right-4 bg-white/90 hover:bg-white dark:bg-zinc-900/90 dark:hover:bg-zinc-900 text-gray-700 dark:text-zinc-200 p-2.5 rounded-xl border border-gray-200/50 shadow-md backdrop-blur-sm transition-colors cursor-pointer"
-                title="Compartilhar Imóvel"
-              >
-                <Share2 className="h-4.5 w-4.5" />
-              </button>
+      <div className={`grid grid-cols-1 ${hideInterestForm ? '' : 'lg:grid-cols-3'} gap-8`}>
+        {/* Main Content */}
+        <div className={`${hideInterestForm ? 'lg:col-span-3' : 'lg:col-span-2'} space-y-8`}>
+          {/* Top Panel: Gallery and Info Header */}
+          <div className={hideInterestForm ? "grid grid-cols-1 lg:grid-cols-2 gap-6 items-start" : "space-y-8"}>
+            {/* Main Gallery */}
+            <div className="space-y-4">
+              <div className="relative aspect-[16/9] overflow-hidden rounded-3xl bg-gray-100 border border-gray-200 dark:border-zinc-800">
+                <img
+                  src={property.imagens && property.imagens.length > 0 ? property.imagens[activeImageIndex].url : '/imagesub.png'}
+                  alt={property.titulo}
+                  className="w-full h-full object-cover transition-all"
+                />
+                <button
+                  onClick={handleShare}
+                  className="absolute top-4 right-4 bg-white/90 hover:bg-white dark:bg-zinc-900/90 dark:hover:bg-zinc-900 text-gray-700 dark:text-zinc-200 p-2.5 rounded-xl border border-gray-200/50 shadow-md backdrop-blur-sm transition-colors cursor-pointer"
+                  title="Compartilhar Imóvel"
+                >
+                  <Share2 className="h-4.5 w-4.5" />
+                </button>
+              </div>
+
+              {/* Gallery Thumbnails */}
+              {property.imagens && property.imagens.length > 1 && (
+                <div className="flex gap-2 overflow-x-auto pb-1">
+                  {property.imagens.map((img, idx) => (
+                    <button
+                      key={img.id}
+                      onClick={() => setActiveImageIndex(idx)}
+                      className={`relative w-24 aspect-[4/3] rounded-xl overflow-hidden border-2 shrink-0 transition-all ${
+                        idx === activeImageIndex ? 'border-primary-medium' : 'border-transparent opacity-65 hover:opacity-100'
+                      }`}
+                    >
+                      <img src={img.url} alt={`Foto ${idx + 1}`} className="w-full h-full object-cover" />
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
-            {/* Gallery Thumbnails */}
-            {property.imagens && property.imagens.length > 1 && (
-              <div className="flex gap-2 overflow-x-auto pb-1">
-                {property.imagens.map((img, idx) => (
-                  <button
-                    key={img.id}
-                    onClick={() => setActiveImageIndex(idx)}
-                    className={`relative w-24 aspect-[4/3] rounded-xl overflow-hidden border-2 shrink-0 transition-all ${
-                      idx === activeImageIndex ? 'border-primary-medium' : 'border-transparent opacity-65 hover:opacity-100'
-                    }`}
-                  >
-                    <img src={img.url} alt={`Foto ${idx + 1}`} className="w-full h-full object-cover" />
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Property Info Headers */}
-          <div className="bg-white dark:bg-zinc-900 border border-gray-150 dark:border-zinc-800 p-6 rounded-3xl shadow-sm space-y-4">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <span className="bg-primary-medium/10 text-primary-medium dark:text-primary-light text-xs font-bold px-3 py-1 rounded-lg">
-                Código: {property.codigo}
-              </span>
-              <div className="flex gap-2">
-                <span className="bg-gray-100 dark:bg-zinc-800 text-gray-600 dark:text-zinc-350 text-[10px] font-bold uppercase px-2 py-0.5 rounded">
-                  {property.tipo}
+            {/* Property Info Headers */}
+            <div className="bg-white dark:bg-zinc-900 border border-gray-150 dark:border-zinc-800 p-6 rounded-3xl shadow-sm space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <span className="bg-primary-medium/10 text-primary-medium dark:text-primary-light text-xs font-bold px-3 py-1 rounded-lg">
+                  Código: {property.codigo}
                 </span>
-                <span className="bg-primary-dark text-white text-[10px] font-bold uppercase px-2 py-0.5 rounded">
-                  {property.modalidade === 'Venda' ? 'Venda' : 'Locação'}
-                </span>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <h1 className="font-poppins text-xl sm:text-2xl font-bold text-gray-800 dark:text-white leading-tight">
-                {property.titulo}
-              </h1>
-              <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-zinc-400">
-                <MapPin className="h-4 w-4 text-primary-medium shrink-0" />
-                <span>{property.cidade} - {property.estado}</span>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4 border-t border-gray-100 dark:border-zinc-800 pt-4">
-              <div>
-                <span className="block text-[10px] text-gray-400 font-semibold uppercase tracking-wider">Área Total</span>
-                <div className="flex items-center gap-1.5 mt-0.5">
-                  <Ruler className="h-4.5 w-4.5 text-primary-medium" />
-                  <span className="text-base font-bold text-gray-800 dark:text-white">{formatArea(property.area_total)}</span>
+                <div className="flex gap-2">
+                  <span className="bg-gray-100 dark:bg-zinc-800 text-gray-600 dark:text-zinc-350 text-[10px] font-bold uppercase px-2 py-0.5 rounded">
+                    {property.tipo}
+                  </span>
+                  <span className="bg-primary-dark text-white text-[10px] font-bold uppercase px-2 py-0.5 rounded">
+                    {property.modalidade === 'Venda' ? 'Venda' : 'Locação'}
+                  </span>
                 </div>
               </div>
-              <div>
-                <span className="block text-[10px] text-gray-400 font-semibold uppercase tracking-wider">Valor Solicitado</span>
-                <div className="text-base font-bold text-primary-dark dark:text-primary-light mt-0.5">
-                  {property.modalidade === 'Aluguel' ? `${formatCurrency(property.valor)}/mês` : formatCurrency(property.valor)}
+
+              <div className="space-y-2">
+                <h1 className="font-poppins text-xl sm:text-2xl font-bold text-gray-800 dark:text-white leading-tight">
+                  {property.titulo}
+                </h1>
+                <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-zinc-400">
+                  <MapPin className="h-4 w-4 text-primary-medium shrink-0" />
+                  <span>{property.cidade} - {property.estado}</span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4 border-t border-gray-100 dark:border-zinc-800 pt-4">
+                <div>
+                  <span className="block text-[10px] text-gray-400 font-semibold uppercase tracking-wider">Área Total</span>
+                  <div className="flex items-center gap-1.5 mt-0.5">
+                    <Ruler className="h-4.5 w-4.5 text-primary-medium" />
+                    <span className="text-base font-bold text-gray-800 dark:text-white">{formatArea(property.area_total)}</span>
+                  </div>
+                </div>
+                <div>
+                  <span className="block text-[10px] text-gray-400 font-semibold uppercase tracking-wider">Valor Solicitado</span>
+                  <div className="text-base font-bold text-primary-dark dark:text-primary-light mt-0.5">
+                    {property.modalidade === 'Aluguel' ? `${formatCurrency(property.valor)}/mês` : formatCurrency(property.valor)}
+                  </div>
                 </div>
               </div>
             </div>
@@ -525,174 +555,182 @@ const DetalheImovel: React.FC<DetalheImovelProps> = ({ id: idProp, isPreview = f
         </div>
 
         {/* CRM Interest Form Sidebar (1 col) */}
-        <div className="space-y-6 h-fit sticky top-28">
-          <div className="bg-white dark:bg-zinc-900 border border-gray-150 dark:border-zinc-800 p-6 rounded-3xl shadow-lg space-y-6">
-            <div className="space-y-1">
-              <h3 className="font-poppins text-base font-bold text-gray-800 dark:text-white">Ficou Interessado?</h3>
-              <p className="text-[11px] text-gray-500">Envie seus dados abaixo. Faremos o cadastro automático do lead no CRM.</p>
-            </div>
-
-            {/* Form actions selector */}
-            <div className="grid grid-cols-2 gap-2 bg-black/[0.02] dark:bg-white/[0.02] backdrop-blur-[2px] p-1 rounded-xl border border-gray-100 dark:border-zinc-800">
-              <button
-                type="button"
-                onClick={() => setTipoInteresse('contato')}
-                className={`py-2 text-[10px] font-bold uppercase rounded-lg transition-colors cursor-pointer ${
-                  tipoInteresse === 'contato'
-                    ? 'bg-white dark:bg-zinc-800 text-primary-dark dark:text-white shadow-sm'
-                    : 'text-gray-500 dark:text-zinc-400 hover:text-gray-800 dark:hover:text-white'
-                }`}
-              >
-                Tenho Interesse
-              </button>
-              <button
-                type="button"
-                onClick={() => setTipoInteresse('visita')}
-                className={`py-2 text-[10px] font-bold uppercase rounded-lg transition-colors cursor-pointer ${
-                  tipoInteresse === 'visita'
-                    ? 'bg-white dark:bg-zinc-800 text-primary-dark dark:text-white shadow-sm'
-                    : 'text-gray-500 dark:text-zinc-400 hover:text-gray-800 dark:hover:text-white'
-                }`}
-              >
-                Agendar Visita
-              </button>
-            </div>
-
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-[11px] font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-wider mb-1">
-                  Nome Completo *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={nome}
-                  onChange={(e) => setNome(e.target.value)}
-                  placeholder="Seu nome"
-                  className="w-full text-xs rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-850 py-2.5 px-3 focus:outline-none focus:border-primary-medium dark:text-white"
-                />
+        {!hideInterestForm && (
+          <div className="space-y-6 h-fit sticky top-28">
+            <div className="bg-white dark:bg-zinc-900 border border-gray-150 dark:border-zinc-800 p-6 rounded-3xl shadow-lg space-y-6">
+              <div className="space-y-1">
+                <h3 className="font-poppins text-base font-bold text-gray-800 dark:text-white">Ficou Interessado?</h3>
+                <p className="text-[11px] text-gray-500">Envie seus dados abaixo. Faremos o cadastro automático do lead no CRM.</p>
               </div>
 
-              <div>
-                <label className="block text-[11px] font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-wider mb-1">
-                  E-mail de Contato *
-                </label>
-                <input
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="exemplo@gmail.com"
-                  className="w-full text-xs rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-850 py-2.5 px-3 focus:outline-none focus:border-primary-medium dark:text-white"
-                />
+              {/* Form actions selector */}
+              <div className="grid grid-cols-2 gap-2 bg-black/[0.02] dark:bg-white/[0.02] backdrop-blur-[2px] p-1 rounded-xl border border-gray-100 dark:border-zinc-800">
+                <button
+                  type="button"
+                  onClick={() => setTipoInteresse('contato')}
+                  className={`py-2 text-[10px] font-bold uppercase rounded-lg transition-colors cursor-pointer ${
+                    tipoInteresse === 'contato'
+                      ? 'bg-white dark:bg-zinc-800 text-primary-dark dark:text-white shadow-sm'
+                      : 'text-gray-500 dark:text-zinc-400 hover:text-gray-800 dark:hover:text-white'
+                  }`}
+                >
+                  Tenho Interesse
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTipoInteresse('visita')}
+                  className={`py-2 text-[10px] font-bold uppercase rounded-lg transition-colors cursor-pointer ${
+                    tipoInteresse === 'visita'
+                      ? 'bg-white dark:bg-zinc-800 text-primary-dark dark:text-white shadow-sm'
+                      : 'text-gray-500 dark:text-zinc-400 hover:text-gray-800 dark:hover:text-white'
+                  }`}
+                >
+                  Agendar Visita
+                </button>
               </div>
 
-              <div>
-                <label className="block text-[11px] font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-wider mb-1">
-                  Telefone / Celular
-                </label>
-                <input
-                  type="tel"
-                  value={telefone}
-                  onChange={(e) => setTelefone(maskPhone(e.target.value))}
-                  placeholder="(18) 99999-9999"
-                  className="w-full text-xs rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-850 py-2.5 px-3 focus:outline-none focus:border-primary-medium dark:text-white"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
+              <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
                   <label className="block text-[11px] font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-wider mb-1">
-                    Cidade *
+                    Nome Completo *
                   </label>
                   <input
                     type="text"
                     required
-                    value={cidade}
-                    onChange={(e) => setCidade(e.target.value)}
-                    placeholder="Ex: Sorriso"
+                    value={nome}
+                    onChange={(e) => setNome(e.target.value)}
+                    placeholder="Seu nome"
                     className="w-full text-xs rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-850 py-2.5 px-3 focus:outline-none focus:border-primary-medium dark:text-white"
                   />
                 </div>
+
                 <div>
                   <label className="block text-[11px] font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-wider mb-1">
-                    Estado *
-                  </label>
-                  <select
-                    required
-                    value={estado}
-                    onChange={(e) => setEstado(e.target.value)}
-                    className="w-full text-xs rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-850 py-2.5 px-3 focus:outline-none focus:border-primary-medium dark:text-white"
-                  >
-                    <option value="">Selecione...</option>
-                    {ESTADOS_BRASIL.map((est) => (
-                      <option key={est.sigla} value={est.sigla}>
-                        {est.sigla} - {est.nome}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              {tipoInteresse === 'visita' && (
-                <div>
-                  <label className="block text-[11px] font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-wider mb-1 flex items-center gap-1">
-                    <Calendar className="h-3.5 w-3.5 text-primary-medium" /> Data da Visita *
+                    E-mail de Contato *
                   </label>
                   <input
-                    type="datetime-local"
+                    type="email"
                     required
-                    value={dataVisita}
-                    onChange={(e) => setDataVisita(e.target.value)}
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="exemplo@gmail.com"
                     className="w-full text-xs rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-850 py-2.5 px-3 focus:outline-none focus:border-primary-medium dark:text-white"
                   />
                 </div>
-              )}
 
-              <div>
-                <label className="block text-[11px] font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-wider mb-1">
-                  {tipoInteresse === 'visita' ? 'Observações da Visita' : 'Mensagem de Interesse *'}
-                </label>
-                <textarea
-                  rows={4}
-                  required={tipoInteresse === 'contato'}
-                  value={mensagem}
-                  onChange={(e) => setMensagem(e.target.value)}
-                  placeholder={tipoInteresse === 'visita' ? 'Ex: Prefiro no final de semana, irei com agrônomo particular...' : 'Gostaria de saber mais sobre as condições de pagamento e permuta...'}
-                  className="w-full text-xs rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-850 py-2.5 px-3 focus:outline-none focus:border-primary-medium dark:text-white resize-none"
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={contactMutation.isPending || visitMutation.isPending}
-                className="w-full rounded-xl bg-primary-dark hover:bg-primary-medium text-white py-3 text-xs font-bold transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer disabled:opacity-55"
-              >
-                <Send className="h-4 w-4" />
-                {tipoInteresse === 'visita' ? 'Solicitar Agendamento' : 'Enviar Interesse'}
-              </button>
-            </form>
-
-            <div className="border-t border-gray-100 dark:border-zinc-800 pt-4">
-              {cleanPhone ? (
-                <a
-                  href={waUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="w-full rounded-xl bg-green-600 hover:bg-green-700 text-white py-3 text-xs font-bold transition-colors flex items-center justify-center gap-2 shadow-md cursor-pointer"
-                >
-                  <MessageCircle className="h-4 w-4" />
-                  Chamar no WhatsApp
-                </a>
-              ) : (
-                <div className="w-full rounded-xl bg-gray-100 dark:bg-zinc-800 text-gray-500 py-3 text-xs font-bold flex items-center justify-center gap-2 border border-dashed border-gray-300 dark:border-zinc-700">
-                  <MessageCircle className="h-4 w-4 text-gray-400" />
-                  [WhatsApp de contato não cadastrado]
+                <div>
+                  <label className="block text-[11px] font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-wider mb-1">
+                    Telefone / Celular
+                  </label>
+                  <input
+                    type="tel"
+                    value={telefone}
+                    onChange={(e) => setTelefone(maskPhone(e.target.value))}
+                    placeholder="(18) 99999-9999"
+                    className="w-full text-xs rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-850 py-2.5 px-3 focus:outline-none focus:border-primary-medium dark:text-white"
+                  />
                 </div>
-              )}
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-[11px] font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-wider mb-1">
+                      Cidade *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={cidade}
+                      onChange={(e) => setCidade(e.target.value)}
+                      placeholder="Ex: Sorriso"
+                      className="w-full text-xs rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-850 py-2.5 px-3 focus:outline-none focus:border-primary-medium dark:text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-wider mb-1">
+                      Estado *
+                    </label>
+                    <select
+                      required
+                      value={estado}
+                      onChange={(e) => setEstado(e.target.value)}
+                      className="w-full text-xs rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-850 py-2.5 px-3 focus:outline-none focus:border-primary-medium dark:text-white"
+                    >
+                      <option value="">Selecione...</option>
+                      {ESTADOS_BRASIL.map((est) => (
+                        <option key={est.sigla} value={est.sigla}>
+                          {est.sigla} - {est.nome}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {tipoInteresse === 'visita' && (
+                  <div>
+                    <label className="block text-[11px] font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-wider mb-1 flex items-center gap-1">
+                      <Calendar className="h-3.5 w-3.5 text-primary-medium" /> Data da Visita *
+                    </label>
+                    <input
+                      type="datetime-local"
+                      required
+                      value={dataVisita}
+                      onChange={(e) => setDataVisita(e.target.value)}
+                      className="w-full text-xs rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-850 py-2.5 px-3 focus:outline-none focus:border-primary-medium dark:text-white"
+                    />
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-[11px] font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-wider mb-1">
+                    {tipoInteresse === 'visita' ? 'Observações da Visita' : 'Mensagem de Interesse *'}
+                  </label>
+                  <textarea
+                    rows={4}
+                    required={tipoInteresse === 'contato'}
+                    value={mensagem}
+                    onChange={(e) => setMensagem(e.target.value)}
+                    placeholder={tipoInteresse === 'visita' ? 'Ex: Prefiro no final de semana, irei com agrônomo particular...' : 'Gostaria de saber mais sobre as condições de pagamento e permuta...'}
+                    className="w-full text-xs rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-850 py-2.5 px-3 focus:outline-none focus:border-primary-medium dark:text-white resize-none"
+                  />
+                </div>
+
+                <CaptchaWidget
+                  key={captchaKey}
+                  onVerify={setCaptchaToken}
+                  onExpire={() => setCaptchaToken(null)}
+                />
+
+                <button
+                  type="submit"
+                  disabled={contactMutation.isPending || visitMutation.isPending || !captchaToken}
+                  className="w-full rounded-xl bg-primary-dark hover:bg-primary-medium text-white py-3 text-xs font-bold transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer disabled:opacity-55 disabled:cursor-not-allowed"
+                >
+                  <Send className="h-4 w-4" />
+                  {tipoInteresse === 'visita' ? 'Solicitar Agendamento' : 'Enviar Interesse'}
+                </button>
+              </form>
+
+              <div className="border-t border-gray-100 dark:border-zinc-800 pt-4">
+                {cleanPhone ? (
+                  <a
+                    href={waUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="w-full rounded-xl bg-green-600 hover:bg-green-700 text-white py-3 text-xs font-bold transition-colors flex items-center justify-center gap-2 shadow-md cursor-pointer"
+                  >
+                    <MessageCircle className="h-4 w-4" />
+                    Chamar no WhatsApp
+                  </a>
+                ) : (
+                  <div className="w-full rounded-xl bg-gray-100 dark:bg-zinc-800 text-gray-500 py-3 text-xs font-bold flex items-center justify-center gap-2 border border-dashed border-gray-300 dark:border-zinc-700">
+                    <MessageCircle className="h-4 w-4 text-gray-400" />
+                    [WhatsApp de contato não cadastrado]
+                  </div>
+                )}
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

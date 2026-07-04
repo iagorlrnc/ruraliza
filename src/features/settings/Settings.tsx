@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { api } from '../../services/api';
 import { useToast } from '../../contexts/ToastContext';
 import { useAuth } from '../../contexts/AuthContext';
-import { Sliders, Save, Phone, Mail, MapPin, Globe, Award, MessageCircle } from 'lucide-react';
+import { Sliders, Save, Phone, Mail, MapPin, Globe, Award, MessageCircle, Edit2, XCircle } from 'lucide-react';
 import { Configuracoes } from '../../types';
 import MapPicker from '../../components/MapPicker';
 import { maskPhone, maskCreci } from '../../utils/masks';
@@ -46,6 +46,7 @@ const Settings: React.FC = () => {
   const queryClient = useQueryClient();
 
   // Form State
+  const [isEditing, setIsEditing] = useState(false);
   const [telefone, setTelefone] = useState('');
   const [telefoneSecundario, setTelefoneSecundario] = useState('');
   const [email, setEmail] = useState('');
@@ -58,14 +59,8 @@ const Settings: React.FC = () => {
   const [socialLinkedin, setSocialLinkedin] = useState('');
   const [socialWhatsapp, setSocialWhatsapp] = useState('');
 
-  // Fetch settings
-  const { data: config, isLoading } = useQuery<Configuracoes>({
-    queryKey: ['settings'],
-    queryFn: api.getConfiguracoes
-  });
-
-  // Populate form when data loads
-  useEffect(() => {
+  const handleCancel = () => {
+    setIsEditing(false);
     if (config) {
       setTelefone(config.telefone || '');
       setTelefoneSecundario(config.telefone_secundario || '');
@@ -79,7 +74,32 @@ const Settings: React.FC = () => {
       setSocialLinkedin(config.social_linkedin || '');
       setSocialWhatsapp(config.social_whatsapp || '');
     }
-  }, [config]);
+  };
+
+  // Fetch settings
+  const { data: config, isLoading } = useQuery<Configuracoes>({
+    queryKey: ['settings'],
+    queryFn: api.getConfiguracoes,
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false
+  });
+
+  // Populate form when data loads (only if not currently editing)
+  useEffect(() => {
+    if (config && !isEditing) {
+      setTelefone(config.telefone || '');
+      setTelefoneSecundario(config.telefone_secundario || '');
+      setEmail(config.email || '');
+      setEndereco(config.endereco || '');
+      setCreci(config.creci || '');
+      setLatitude(config.latitude || 0);
+      setLongitude(config.longitude || 0);
+      setSocialFacebook(config.social_facebook || '');
+      setSocialInstagram(config.social_instagram || '');
+      setSocialLinkedin(config.social_linkedin || '');
+      setSocialWhatsapp(config.social_whatsapp || '');
+    }
+  }, [config, isEditing]);
 
   // Save Mutation
   const saveMutation = useMutation({
@@ -87,6 +107,7 @@ const Settings: React.FC = () => {
     onSuccess: () => {
       showToast('Configurações atualizadas com sucesso!', 'success');
       queryClient.invalidateQueries({ queryKey: ['settings'] });
+      setIsEditing(false);
     },
     onError: () => {
       showToast('Erro ao salvar as configurações.', 'error');
@@ -149,9 +170,32 @@ const Settings: React.FC = () => {
           
           {/* Section 1: Contato e Endereço */}
           <div className="space-y-4">
-            <div className="flex items-center gap-2 border-b border-gray-100 dark:border-zinc-800 pb-2">
-              <Sliders className="h-5 w-5 text-primary-medium" />
-              <h3 className="font-poppins text-sm font-bold text-gray-800 dark:text-white">Informações Institucionais</h3>
+            <div className="flex justify-between items-center border-b border-gray-100 dark:border-zinc-800 pb-2">
+              <div className="flex items-center gap-2">
+                <Sliders className="h-5 w-5 text-primary-medium" />
+                <h3 className="font-poppins text-sm font-bold text-gray-800 dark:text-white">Informações Institucionais</h3>
+              </div>
+              <button
+                type="button"
+                onClick={isEditing ? handleCancel : () => setIsEditing(true)}
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-sm border-none flex items-center justify-center gap-1.5 text-white ${
+                  isEditing 
+                    ? 'bg-red-600 hover:bg-red-700' 
+                    : 'bg-primary-dark hover:bg-primary-medium'
+                }`}
+              >
+                {isEditing ? (
+                  <>
+                    <XCircle className="h-3.5 w-3.5" />
+                    Cancelar
+                  </>
+                ) : (
+                  <>
+                    <Edit2 className="h-3.5 w-3.5" />
+                    Editar
+                  </>
+                )}
+              </button>
             </div>
             
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -164,10 +208,11 @@ const Settings: React.FC = () => {
                   <input
                     type="text"
                     required
+                    disabled={!isEditing}
                     value={telefone}
                     onChange={(e) => setTelefone(maskPhone(e.target.value))}
                     placeholder="Ex: (18) 3222-1234"
-                    className="w-full text-xs rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-850 py-2.5 pl-10 pr-3 focus:outline-none focus:border-primary-medium dark:text-white"
+                    className="w-full text-xs rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-850 py-2.5 pl-10 pr-3 focus:outline-none focus:border-primary-medium dark:text-white disabled:opacity-60 disabled:cursor-not-allowed"
                   />
                 </div>
               </div>
@@ -180,10 +225,11 @@ const Settings: React.FC = () => {
                   <Phone className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                   <input
                     type="text"
+                    disabled={!isEditing}
                     value={telefoneSecundario}
                     onChange={(e) => setTelefoneSecundario(maskPhone(e.target.value))}
                     placeholder="Ex: (18) 99888-7766"
-                    className="w-full text-xs rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-850 py-2.5 pl-10 pr-3 focus:outline-none focus:border-primary-medium dark:text-white"
+                    className="w-full text-xs rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-850 py-2.5 pl-10 pr-3 focus:outline-none focus:border-primary-medium dark:text-white disabled:opacity-60 disabled:cursor-not-allowed"
                   />
                 </div>
               </div>
@@ -199,10 +245,11 @@ const Settings: React.FC = () => {
                   <input
                     type="email"
                     required
+                    disabled={!isEditing}
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="Ex: contato@ruralizanegocios.com.br"
-                    className="w-full text-xs rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-850 py-2.5 pl-10 pr-3 focus:outline-none focus:border-primary-medium dark:text-white"
+                    className="w-full text-xs rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-850 py-2.5 pl-10 pr-3 focus:outline-none focus:border-primary-medium dark:text-white disabled:opacity-60 disabled:cursor-not-allowed"
                   />
                 </div>
               </div>
@@ -216,10 +263,11 @@ const Settings: React.FC = () => {
                   <input
                     type="text"
                     required
+                    disabled={!isEditing}
                     value={creci}
                     onChange={(e) => setCreci(maskCreci(e.target.value))}
                     placeholder="Ex: 35.421-J"
-                    className="w-full text-xs rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-850 py-2.5 pl-10 pr-3 focus:outline-none focus:border-primary-medium dark:text-white"
+                    className="w-full text-xs rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-850 py-2.5 pl-10 pr-3 focus:outline-none focus:border-primary-medium dark:text-white disabled:opacity-60 disabled:cursor-not-allowed"
                   />
                 </div>
               </div>
@@ -234,10 +282,11 @@ const Settings: React.FC = () => {
                 <input
                   type="text"
                   required
+                  disabled={!isEditing}
                   value={endereco}
                   onChange={(e) => setEndereco(e.target.value)}
                   placeholder="Rua, número, bairro, cidade - UF"
-                  className="w-full text-xs rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-850 py-2.5 pl-10 pr-3 focus:outline-none focus:border-primary-medium dark:text-white"
+                  className="w-full text-xs rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-850 py-2.5 pl-10 pr-3 focus:outline-none focus:border-primary-medium dark:text-white disabled:opacity-60 disabled:cursor-not-allowed"
                 />
               </div>
             </div>
@@ -259,10 +308,11 @@ const Settings: React.FC = () => {
                   <Facebook className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                   <input
                     type="url"
+                    disabled={!isEditing}
                     value={socialFacebook}
                     onChange={(e) => setSocialFacebook(e.target.value)}
                     placeholder="https://facebook.com/seu-perfil"
-                    className="w-full text-xs rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-850 py-2.5 pl-10 pr-3 focus:outline-none focus:border-primary-medium dark:text-white"
+                    className="w-full text-xs rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-850 py-2.5 pl-10 pr-3 focus:outline-none focus:border-primary-medium dark:text-white disabled:opacity-60 disabled:cursor-not-allowed"
                   />
                 </div>
               </div>
@@ -275,10 +325,11 @@ const Settings: React.FC = () => {
                   <Instagram className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                   <input
                     type="url"
+                    disabled={!isEditing}
                     value={socialInstagram}
                     onChange={(e) => setSocialInstagram(e.target.value)}
                     placeholder="https://instagram.com/seu-perfil"
-                    className="w-full text-xs rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-850 py-2.5 pl-10 pr-3 focus:outline-none focus:border-primary-medium dark:text-white"
+                    className="w-full text-xs rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-850 py-2.5 pl-10 pr-3 focus:outline-none focus:border-primary-medium dark:text-white disabled:opacity-60 disabled:cursor-not-allowed"
                   />
                 </div>
               </div>
@@ -293,10 +344,11 @@ const Settings: React.FC = () => {
                   <Linkedin className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                   <input
                     type="url"
+                    disabled={!isEditing}
                     value={socialLinkedin}
                     onChange={(e) => setSocialLinkedin(e.target.value)}
                     placeholder="https://linkedin.com/company/sua-empresa"
-                    className="w-full text-xs rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-850 py-2.5 pl-10 pr-3 focus:outline-none focus:border-primary-medium dark:text-white"
+                    className="w-full text-xs rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-850 py-2.5 pl-10 pr-3 focus:outline-none focus:border-primary-medium dark:text-white disabled:opacity-60 disabled:cursor-not-allowed"
                   />
                 </div>
               </div>
@@ -309,10 +361,11 @@ const Settings: React.FC = () => {
                   <MessageCircle className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                   <input
                     type="url"
+                    disabled={!isEditing}
                     value={socialWhatsapp}
                     onChange={(e) => setSocialWhatsapp(e.target.value)}
                     placeholder="https://wa.me/5518999999999"
-                    className="w-full text-xs rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-850 py-2.5 pl-10 pr-3 focus:outline-none focus:border-primary-medium dark:text-white"
+                    className="w-full text-xs rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-850 py-2.5 pl-10 pr-3 focus:outline-none focus:border-primary-medium dark:text-white disabled:opacity-60 disabled:cursor-not-allowed"
                   />
                 </div>
               </div>
@@ -330,14 +383,19 @@ const Settings: React.FC = () => {
               <label className="block text-xs font-semibold text-gray-600 dark:text-zinc-400 mb-2">
                 Localização no Mapa (Arraste o marcador ou clique para definir a posição exata)
               </label>
-              <MapPicker
-                latitude={latitude}
-                longitude={longitude}
-                onChange={(lat, lng) => {
-                  setLatitude(lat);
-                  setLongitude(lng);
-                }}
-              />
+              <div className="relative">
+                <MapPicker
+                  latitude={latitude}
+                  longitude={longitude}
+                  onChange={(lat, lng) => {
+                    setLatitude(lat);
+                    setLongitude(lng);
+                  }}
+                />
+                {!isEditing && (
+                  <div className="absolute inset-0 z-20 cursor-not-allowed bg-transparent" />
+                )}
+              </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -353,7 +411,7 @@ const Settings: React.FC = () => {
                   value={latitude}
                   onChange={(e) => setLatitude(Number(e.target.value))}
                   placeholder="Ex: -22.122765"
-                  className="w-full text-xs rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-100 dark:bg-zinc-800 py-2.5 px-3 focus:outline-none dark:text-white disabled:opacity-60 disabled:cursor-not-allowed"
+                  className="w-full text-xs rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-850 py-2.5 px-3 focus:outline-none dark:text-white disabled:opacity-60 disabled:cursor-not-allowed"
                 />
               </div>
 
@@ -369,7 +427,7 @@ const Settings: React.FC = () => {
                   value={longitude}
                   onChange={(e) => setLongitude(Number(e.target.value))}
                   placeholder="Ex: -51.389270"
-                  className="w-full text-xs rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-100 dark:bg-zinc-800 py-2.5 px-3 focus:outline-none dark:text-white disabled:opacity-60 disabled:cursor-not-allowed"
+                  className="w-full text-xs rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-850 py-2.5 px-3 focus:outline-none dark:text-white disabled:opacity-60 disabled:cursor-not-allowed"
                 />
               </div>
             </div>
@@ -377,16 +435,18 @@ const Settings: React.FC = () => {
 
         </div>
 
-        <div className="p-4 sm:px-8 sm:py-5 bg-gray-50 dark:bg-zinc-900/50 border-t border-gray-100 dark:border-zinc-800 flex justify-end">
-          <button
-            type="submit"
-            disabled={saveMutation.isPending}
-            className="rounded-xl bg-primary-dark hover:bg-primary-medium text-white px-6 py-2.5 text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5 shadow-md"
-          >
-            <Save className="h-4 w-4" />
-            {saveMutation.isPending ? 'Salvando...' : 'Salvar Alterações'}
-          </button>
-        </div>
+        {isEditing && (
+          <div className="p-4 sm:px-8 sm:py-5 bg-gray-50 dark:bg-zinc-900/50 border-t border-gray-100 dark:border-zinc-800 flex justify-end animate-in slide-in-from-bottom-3 duration-200">
+            <button
+              type="submit"
+              disabled={saveMutation.isPending}
+              className="rounded-xl bg-primary-dark hover:bg-primary-medium text-white px-6 py-2.5 text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5 shadow-md border-none"
+            >
+              <Save className="h-4 w-4" />
+              {saveMutation.isPending ? 'Salvando...' : 'Salvar Alterações'}
+            </button>
+          </div>
+        )}
       </form>
     </div>
   );

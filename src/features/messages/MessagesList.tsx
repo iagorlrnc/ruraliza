@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../services/api';
 import { formatDateTime, formatPhone } from '../../utils/format';
@@ -8,9 +7,11 @@ import { useAuth } from '../../contexts/AuthContext';
 import { 
   Search, Mail, Phone as PhoneIcon, Building, Bookmark, Save, 
   MessageSquare, Clock, CheckCircle2, Archive, Inbox, Calendar, ChevronRight, ExternalLink,
-  User, UserCheck
+  User, UserCheck, X, Pencil
 } from 'lucide-react';
 import { Mensagem, StatusMensagem } from '../../types';
+import DetalheImovel from '../../pages/DetalheImovel';
+import { parseNotes } from '../../utils/notes';
 
 const statusConfig: Record<StatusMensagem, { label: string; color: string; bg: string; icon: React.ElementType }> = {
   'Nova': { label: 'Nova', color: 'text-rose-600 dark:text-rose-400', bg: 'bg-rose-50 dark:bg-rose-950/30 border-rose-200/50 dark:border-rose-800/30', icon: Inbox },
@@ -48,15 +49,23 @@ const MessagesList: React.FC = () => {
   const [filtroStatus, setFiltroStatus] = useState<string>('');
   const [onlyAssignedToMe, setOnlyAssignedToMe] = useState(false);
   const [selectedMessageId, setSelectedMessageId] = useState<string | null>(null);
+  const [previewPropertyId, setPreviewPropertyId] = useState<string | null>(null);
   
   // Note editing state
   const [observacaoInterna, setObservacaoInterna] = useState('');
+  const [editingNoteIndex, setEditingNoteIndex] = useState<number | null>(null);
+  const [editingNoteText, setEditingNoteText] = useState('');
+  const [isWritingNewNote, setIsWritingNewNote] = useState(false);
 
   // Fetch messages
-  const { data: messages = [], isLoading } = useQuery({
+  const { data: rawMessages = [], isLoading } = useQuery({
     queryKey: ['messages'],
     queryFn: api.getMessages
   });
+
+  const messages = rawMessages.filter(
+    (m) => m.assunto !== 'Agendamento de Visita' && m.assunto !== 'Solicitação de Visita'
+  );
 
   // Fetch users for assignment selection
   const { data: users = [] } = useQuery({
@@ -85,7 +94,6 @@ const MessagesList: React.FC = () => {
     updateMutation.mutate({
       id: msg.id,
       status: newStatus,
-      observacao: msg.observacao_interna,
       atribuidoAId: msg.atribuido_a_id
     });
   };
@@ -94,18 +102,93 @@ const MessagesList: React.FC = () => {
     updateMutation.mutate({
       id: msg.id,
       status: msg.status,
-      observacao: msg.observacao_interna,
       atribuidoAId: userId
     });
   };
 
+  // Add Note Mutation
+  const addNoteMutation = useMutation({
+    mutationFn: (payload: { messageId: string; userId: string; userName: string; text: string }) => 
+      api.addInternalNote(payload.messageId, payload.userId, payload.userName, payload.text),
+    onSuccess: () => {
+      showToast('Observação adicionada com sucesso.', 'success');
+      queryClient.invalidateQueries({ queryKey: ['messages'] });
+    },
+    onError: () => {
+      showToast('Erro ao adicionar observação.', 'error');
+    }
+  });
+
+  // Edit Note Mutation
+  const editNoteMutation = useMutation({
+    mutationFn: (payload: { messageId: string; noteIndex: number; text: string }) => 
+      api.updateInternalNote(payload.messageId, payload.noteIndex, payload.text),
+    onSuccess: () => {
+      showToast('Observação atualizada com sucesso.', 'success');
+      queryClient.invalidateQueries({ queryKey: ['messages'] });
+      handleCancelEditNote();
+    },
+    onError: () => {
+      showToast('Erro ao atualizar observação.', 'error');
+    }
+  });
+
+  // Delete Note Mutation
+  const deleteNoteMutation = useMutation({
+    mutationFn: (payload: { messageId: string; noteIndex: number }) => 
+      api.deleteInternalNote(payload.messageId, payload.noteIndex),
+    onSuccess: () => {
+      showToast('Observação excluída com sucesso.', 'success');
+      queryClient.invalidateQueries({ queryKey: ['messages'] });
+    },
+    onError: () => {
+      showToast('Erro ao excluir observação.', 'error');
+    }
+  });
+
   const handleSaveObservation = (msg: Mensagem) => {
-    updateMutation.mutate({
-      id: msg.id,
-      status: msg.status,
-      observacao: observacaoInterna,
-      atribuidoAId: msg.atribuido_a_id
+    if (!observacaoInterna.trim()) return;
+
+    addNoteMutation.mutate({
+      messageId: msg.id,
+      userId: currentUser?.id || '',
+      userName: currentUser?.nome || 'Contador',
+      text: observacaoInterna.trim()
+    }, {
+      onSuccess: () => {
+        setObservacaoInterna('');
+        setIsWritingNewNote(false);
+      }
     });
+  };
+
+  const handleStartEditNote = (index: number, text: string) => {
+    setEditingNoteIndex(index);
+    setEditingNoteText(text);
+  };
+
+  const handleCancelEditNote = () => {
+    setEditingNoteIndex(null);
+    setEditingNoteText('');
+  };
+
+  const handleSaveEditedNote = (index: number) => {
+    if (!selectedMessage) return;
+    editNoteMutation.mutate({
+      messageId: selectedMessage.id,
+      noteIndex: index,
+      text: editingNoteText.trim()
+    });
+  };
+
+  const handleDeleteNote = (index: number) => {
+    if (!selectedMessage) return;
+    if (window.confirm('Tem certeza que deseja excluir esta nota?')) {
+      deleteNoteMutation.mutate({
+        messageId: selectedMessage.id,
+        noteIndex: index
+      });
+    }
   };
 
   // Filter messages
@@ -130,7 +213,9 @@ const MessagesList: React.FC = () => {
   // Sync internal observation editor when selected message changes
   React.useEffect(() => {
     if (selectedMessage) {
-      setObservacaoInterna(selectedMessage.observacao_interna || '');
+      setObservacaoInterna('');
+      handleCancelEditNote();
+      setIsWritingNewNote(false);
     }
   }, [selectedMessage?.id]);
 
@@ -460,6 +545,74 @@ const MessagesList: React.FC = () => {
                     </p>
                   </div>
 
+                  {/* Note block below message div */}
+                  {parseNotes(selectedMessage.observacao_interna).map((note, index) => {
+                    const isMyNote = note.userId === currentUser?.id || note.userName === currentUser?.nome;
+                    return (
+                      <div key={index} className="bg-amber-50/40 dark:bg-amber-950/10 p-4 rounded-2xl border border-amber-250/20 dark:border-amber-900/20 flex flex-col shrink-0 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-1.5">
+                            <Bookmark className="h-3.5 w-3.5 text-amber-500" />
+                            <span className="bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300 text-[9px] font-bold uppercase px-2 py-0.5 rounded">
+                              Notas de {note.userName}
+                            </span>
+                          </div>
+                          {isMyNote && (
+                            <div className="flex items-center gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => handleStartEditNote(index, note.text)}
+                                className="text-gray-400 hover:text-primary-medium dark:hover:text-primary-light p-1 transition-colors border-none bg-transparent cursor-pointer flex items-center justify-center"
+                                title="Editar Nota"
+                              >
+                                <Pencil className="h-3 w-3" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteNote(index)}
+                                className="text-gray-400 hover:text-red-650 p-1 transition-colors border-none bg-transparent cursor-pointer flex items-center justify-center"
+                                title="Excluir Nota"
+                              >
+                                <X className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                          )}
+                        </div>
+
+                        {editingNoteIndex === index ? (
+                          <div className="space-y-2">
+                            <textarea
+                              rows={2}
+                              value={editingNoteText}
+                              onChange={(e) => setEditingNoteText(e.target.value)}
+                              className="w-full text-xs rounded-xl border border-primary-medium bg-white dark:bg-zinc-900 p-2.5 focus:outline-none dark:text-white resize-none"
+                            />
+                            <div className="flex justify-end gap-2">
+                              <button
+                                type="button"
+                                onClick={handleCancelEditNote}
+                                className="px-3 py-1.5 rounded-lg text-[10px] font-bold bg-gray-100 dark:bg-zinc-800 text-gray-600 dark:text-zinc-300 hover:bg-gray-200 dark:hover:bg-zinc-700 transition-colors border-none cursor-pointer"
+                              >
+                                Cancelar
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleSaveEditedNote(index)}
+                                className="px-3 py-1.5 rounded-lg text-[10px] font-bold bg-primary-dark text-white hover:bg-primary-medium transition-colors border-none cursor-pointer shadow-sm"
+                              >
+                                Salvar
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <p className="text-xs text-gray-700 dark:text-zinc-300 leading-relaxed font-sans whitespace-pre-wrap">
+                            {note.text}
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })}
+
                   {/* Related Property */}
                   {selectedMessage.imovel && (
                     <div className="flex items-center justify-between p-3.5 rounded-2xl border border-primary-medium/20 bg-primary-medium/5">
@@ -476,12 +629,13 @@ const MessagesList: React.FC = () => {
                           </span>
                         </div>
                       </div>
-                      <Link
-                        to={`/imoveis/editar/${selectedMessage.imovel_id}`}
-                        className="text-[10px] bg-primary-dark hover:bg-primary-medium text-white px-3 py-1.5 rounded-lg font-bold transition-colors flex items-center gap-1"
+                      <button
+                        type="button"
+                        onClick={() => setPreviewPropertyId(selectedMessage.imovel_id || null)}
+                        className="text-[10px] bg-primary-dark hover:bg-primary-medium text-white px-3 py-1.5 rounded-lg font-bold transition-colors flex items-center gap-1 cursor-pointer border-none"
                       >
                         Ver <ChevronRight className="h-3 w-3" />
-                      </Link>
+                      </button>
                     </div>
                   )}
                 </div>
@@ -489,24 +643,40 @@ const MessagesList: React.FC = () => {
                 {/* Internal Observations - Footer */}
                 <div className="border-t border-gray-100 dark:border-zinc-800 p-4 shrink-0 bg-gray-50/50 dark:bg-zinc-900/80">
                   <label className="block text-[10px] font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-wider flex items-center gap-1.5 mb-2">
-                    <Bookmark className="h-3.5 w-3.5" /> Observações Internas
+                    <Bookmark className="h-3.5 w-3.5" /> Adicionar Observação Interna
                   </label>
                   <div className="flex gap-2">
                     <textarea
                       rows={2}
                       value={observacaoInterna}
+                      disabled={!isWritingNewNote}
                       onChange={(e) => setObservacaoInterna(e.target.value)}
-                      placeholder="Notas sobre andamento, ligações, e-mails enviados..."
-                      className="w-full text-xs rounded-xl border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-2.5 focus:outline-none dark:text-white resize-none placeholder:text-gray-400"
+                      placeholder={isWritingNewNote ? "Adicione novas notas sobre ligações, visitas ou andamento deste lead..." : "Observação interna travada. Clique no lápis ao lado para escrever."}
+                      className={`w-full text-xs rounded-xl border p-2.5 focus:outline-none dark:text-white resize-none placeholder:text-gray-400 transition-colors ${
+                        isWritingNewNote
+                          ? 'border-primary-medium bg-white dark:bg-zinc-900'
+                          : 'border-gray-200 dark:border-zinc-800 bg-gray-100/60 dark:bg-zinc-950/40 text-gray-500 cursor-not-allowed'
+                      }`}
                     />
-                    <button
-                      type="button"
-                      onClick={() => handleSaveObservation(selectedMessage)}
-                      className="bg-primary-dark hover:bg-primary-medium text-white px-3.5 rounded-xl flex items-center justify-center shrink-0 cursor-pointer shadow-sm transition-colors"
-                      title="Salvar Notas"
-                    >
-                      <Save className="h-4 w-4" />
-                    </button>
+                    {isWritingNewNote ? (
+                      <button
+                        type="button"
+                        onClick={() => handleSaveObservation(selectedMessage)}
+                        className="bg-primary-dark hover:bg-primary-medium text-white px-3.5 rounded-xl flex items-center justify-center shrink-0 cursor-pointer shadow-sm transition-colors border-none"
+                        title="Salvar Notas"
+                      >
+                        <Save className="h-4 w-4" />
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setIsWritingNewNote(true)}
+                        className="bg-gray-100 hover:bg-gray-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-gray-700 dark:text-zinc-300 px-3.5 rounded-xl flex items-center justify-center shrink-0 cursor-pointer shadow-sm transition-colors border border-gray-200 dark:border-zinc-700"
+                        title="Editar Notas"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -521,6 +691,27 @@ const MessagesList: React.FC = () => {
           )}
         </section>
       </div>
+
+      {previewPropertyId && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-zinc-900 rounded-3xl w-full max-w-5xl h-[85vh] flex flex-col overflow-hidden shadow-2xl border border-gray-150 dark:border-zinc-800 animate-in fade-in zoom-in-95 duration-200">
+            {/* Modal Header */}
+            <div className="flex justify-between items-center px-6 py-4 border-b border-gray-100 dark:border-zinc-800 shrink-0">
+              <h3 className="font-poppins font-bold text-gray-800 dark:text-white">Visualização do Anúncio (Simulação)</h3>
+              <button 
+                onClick={() => setPreviewPropertyId(null)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-white text-xs font-bold flex items-center gap-1 cursor-pointer border-none bg-transparent"
+              >
+                <X className="h-4 w-4" /> Fechar
+              </button>
+            </div>
+            {/* Modal Body */}
+            <div className="flex-1 overflow-y-auto">
+              <DetalheImovel id={previewPropertyId} isPreview={true} onClose={() => setPreviewPropertyId(null)} hideInterestForm={true} />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

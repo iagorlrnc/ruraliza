@@ -1,5 +1,6 @@
 import { supabase } from '../lib/supabase';
 import { mockDb } from './mockData';
+import { parseNotes } from '../utils/notes';
 import { 
   Imovel, 
   Usuario, 
@@ -451,14 +452,14 @@ export const api = {
     mensagem: string;
     imovel_id?: string;
     cidade?: string;
-  }): Promise<string> => {
+  }, captchaToken?: string): Promise<string> => {
     if (!isSupabaseConfigured()) {
       const res = mockDb.registrarInteracaoCliente(payload);
       return res.mensagemId;
     }
 
     // Call the security definer database RPC
-    const { data, error } = await supabase.rpc('registrar_mensagem_contato', {
+    let query = supabase.rpc('registrar_mensagem_contato', {
       p_nome: payload.nome,
       p_email: payload.email,
       p_telefone: payload.telefone || null,
@@ -467,6 +468,12 @@ export const api = {
       p_imovel_id: payload.imovel_id || null,
       p_cidade: payload.cidade || null
     });
+
+    if (captchaToken) {
+      query = query.setHeader('x-captcha-token', captchaToken);
+    }
+
+    const { data, error } = await query;
 
     if (error) throw error;
     return data; // returns the generated user id, message id is generated in db
@@ -478,9 +485,12 @@ export const api = {
     }
 
     const payload: any = { 
-      status, 
-      observacao_interna: observacao 
+      status
     };
+
+    if (observacao !== undefined) {
+      payload.observacao_interna = observacao;
+    }
 
     if (atribuidoAId !== undefined) {
       payload.atribuido_a_id = atribuidoAId;
@@ -492,6 +502,100 @@ export const api = {
       .eq('id', id);
 
     if (error) throw error;
+    return true;
+  },
+
+  addInternalNote: async (messageId: string, userId: string, userName: string, noteText: string): Promise<boolean> => {
+    if (!isSupabaseConfigured()) {
+      return mockDb.addInternalNote(messageId, userId, userName, noteText);
+    }
+
+    const { data, error: fetchError } = await supabase
+      .from('tabela_mensagens')
+      .select('observacao_interna')
+      .eq('id', messageId)
+      .single();
+
+    if (fetchError) throw fetchError;
+
+    const currentNotes = parseNotes(data?.observacao_interna);
+
+    const userNoteIndex = currentNotes.findIndex(n => n.userId === userId || (userId === '' && n.userName === userName));
+    if (userNoteIndex >= 0) {
+      currentNotes[userNoteIndex].text = `${currentNotes[userNoteIndex].text}\n${noteText.trim()}`;
+    } else {
+      currentNotes.push({
+        userId,
+        userName,
+        text: noteText.trim(),
+        createdAt: new Date().toISOString()
+      });
+    }
+
+    const { error: updateError } = await supabase
+      .from('tabela_mensagens')
+      .update({ observacao_interna: JSON.stringify(currentNotes) })
+      .eq('id', messageId);
+
+    if (updateError) throw updateError;
+    return true;
+  },
+
+  updateInternalNote: async (messageId: string, noteIndex: number, newText: string): Promise<boolean> => {
+    if (!isSupabaseConfigured()) {
+      return mockDb.updateInternalNote(messageId, noteIndex, newText);
+    }
+
+    const { data, error: fetchError } = await supabase
+      .from('tabela_mensagens')
+      .select('observacao_interna')
+      .eq('id', messageId)
+      .single();
+
+    if (fetchError) throw fetchError;
+
+    const currentNotes = parseNotes(data?.observacao_interna);
+
+    if (newText.trim() === '') {
+      currentNotes.splice(noteIndex, 1);
+    } else if (currentNotes[noteIndex]) {
+      currentNotes[noteIndex].text = newText.trim();
+    }
+
+    const { error: updateError } = await supabase
+      .from('tabela_mensagens')
+      .update({ observacao_interna: currentNotes.length > 0 ? JSON.stringify(currentNotes) : null })
+      .eq('id', messageId);
+
+    if (updateError) throw updateError;
+    return true;
+  },
+
+  deleteInternalNote: async (messageId: string, noteIndex: number): Promise<boolean> => {
+    if (!isSupabaseConfigured()) {
+      return mockDb.deleteInternalNote(messageId, noteIndex);
+    }
+
+    const { data, error: fetchError } = await supabase
+      .from('tabela_mensagens')
+      .select('observacao_interna')
+      .eq('id', messageId)
+      .single();
+
+    if (fetchError) throw fetchError;
+
+    const currentNotes = parseNotes(data?.observacao_interna);
+
+    if (currentNotes[noteIndex]) {
+      currentNotes.splice(noteIndex, 1);
+    }
+
+    const { error: updateError } = await supabase
+      .from('tabela_mensagens')
+      .update({ observacao_interna: currentNotes.length > 0 ? JSON.stringify(currentNotes) : null })
+      .eq('id', messageId);
+
+    if (updateError) throw updateError;
     return true;
   },
 
@@ -529,13 +633,13 @@ export const api = {
     data_solicitada: string;
     observacoes?: string;
     cidade?: string;
-  }): Promise<string> => {
+  }, captchaToken?: string): Promise<string> => {
     if (!isSupabaseConfigured()) {
       const res = mockDb.registrarSolicitacaoVisita(payload);
       return res.visitaId;
     }
 
-    const { data, error } = await supabase.rpc('registrar_solicitacao_visita', {
+    let query = supabase.rpc('registrar_solicitacao_visita', {
       p_nome: payload.nome,
       p_email: payload.email,
       p_telefone: payload.telefone || null,
@@ -544,6 +648,12 @@ export const api = {
       p_observacoes: payload.observacoes || null,
       p_cidade: payload.cidade || null
     });
+
+    if (captchaToken) {
+      query = query.setHeader('x-captcha-token', captchaToken);
+    }
+
+    const { data, error } = await query;
 
     if (error) throw error;
     return data;
@@ -578,7 +688,7 @@ export const api = {
     return data || [];
   },
 
-  saveTestimonial: async (testimonial: Partial<Depoimento> & { nome: string; cargo: string; texto: string }): Promise<Depoimento> => {
+  saveTestimonial: async (testimonial: Partial<Depoimento> & { nome: string; cargo: string; texto: string }, captchaToken?: string): Promise<Depoimento> => {
     if (!isSupabaseConfigured()) {
       return mockDb.saveTestimonial(testimonial);
     }
@@ -597,7 +707,7 @@ export const api = {
       if (error) throw error;
       return data;
     } else {
-      const { data, error } = await supabase
+      let query = supabase
         .from('tabela_depoimentos')
         .insert([{
           nome: testimonial.nome,
@@ -606,6 +716,12 @@ export const api = {
         }])
         .select()
         .single();
+
+      if (captchaToken) {
+        query = query.setHeader('x-captcha-token', captchaToken);
+      }
+
+      const { data, error } = await query;
       if (error) throw error;
       return data;
     }

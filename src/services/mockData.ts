@@ -1,4 +1,5 @@
 import { Imovel, Usuario, Mensagem, SolicitacaoVisita, Depoimento, DashboardMetrics, StatusMensagem, StatusVisita, Configuracoes, Vendedor, Categoria } from '../types';
+import { parseNotes } from '../utils/notes';
 
 const STORAGE_KEYS = {
   PROPERTIES: 'ruraliza_properties',
@@ -660,6 +661,68 @@ export const mockDb = {
       if (atribuidoAId !== undefined) {
         messages[index].atribuido_a_id = atribuidoAId === null ? undefined : atribuidoAId;
       }
+      localStorage.setItem(STORAGE_KEYS.MESSAGES, JSON.stringify(messages));
+      return true;
+    }
+    return false;
+  },
+
+  addInternalNote: (messageId: string, userId: string, userName: string, noteText: string): boolean => {
+    initializeStorage();
+    const messages = JSON.parse(localStorage.getItem(STORAGE_KEYS.MESSAGES) || '[]');
+    const index = messages.findIndex((m: Mensagem) => m.id === messageId);
+    if (index !== -1) {
+      const currentNotes = parseNotes(messages[index].observacao_interna);
+      const userNoteIndex = currentNotes.findIndex(n => n.userId === userId || (userId === '' && n.userName === userName));
+      
+      if (userNoteIndex >= 0) {
+        currentNotes[userNoteIndex].text = `${currentNotes[userNoteIndex].text}\n${noteText.trim()}`;
+      } else {
+        currentNotes.push({
+          userId,
+          userName,
+          text: noteText.trim(),
+          createdAt: new Date().toISOString()
+        });
+      }
+      
+      messages[index].observacao_interna = JSON.stringify(currentNotes);
+      localStorage.setItem(STORAGE_KEYS.MESSAGES, JSON.stringify(messages));
+      return true;
+    }
+    return false;
+  },
+
+  updateInternalNote: (messageId: string, noteIndex: number, newText: string): boolean => {
+    initializeStorage();
+    const messages = JSON.parse(localStorage.getItem(STORAGE_KEYS.MESSAGES) || '[]');
+    const index = messages.findIndex((m: Mensagem) => m.id === messageId);
+    if (index !== -1) {
+      const currentNotes = parseNotes(messages[index].observacao_interna);
+      if (newText.trim() === '') {
+        currentNotes.splice(noteIndex, 1);
+      } else if (currentNotes[noteIndex]) {
+        currentNotes[noteIndex].text = newText.trim();
+      }
+      
+      messages[index].observacao_interna = currentNotes.length > 0 ? JSON.stringify(currentNotes) : '';
+      localStorage.setItem(STORAGE_KEYS.MESSAGES, JSON.stringify(messages));
+      return true;
+    }
+    return false;
+  },
+
+  deleteInternalNote: (messageId: string, noteIndex: number): boolean => {
+    initializeStorage();
+    const messages = JSON.parse(localStorage.getItem(STORAGE_KEYS.MESSAGES) || '[]');
+    const index = messages.findIndex((m: Mensagem) => m.id === messageId);
+    if (index !== -1) {
+      const currentNotes = parseNotes(messages[index].observacao_interna);
+      if (currentNotes[noteIndex]) {
+        currentNotes.splice(noteIndex, 1);
+      }
+      
+      messages[index].observacao_interna = currentNotes.length > 0 ? JSON.stringify(currentNotes) : '';
       localStorage.setItem(STORAGE_KEYS.MESSAGES, JSON.stringify(messages));
       return true;
     }

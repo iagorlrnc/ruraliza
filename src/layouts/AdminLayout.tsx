@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Link, Outlet, useLocation, useNavigate, Navigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { useTheme } from '../contexts/ThemeContext';
@@ -16,7 +17,9 @@ import {
   UserCheck,
   Sliders,
   Sun,
-  Moon
+  Moon,
+  RefreshCw,
+  Calendar
 } from 'lucide-react';
 
 const AdminLayout: React.FC = () => {
@@ -26,6 +29,20 @@ const AdminLayout: React.FC = () => {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { darkMode, toggleDarkMode } = useTheme();
+  const queryClient = useQueryClient();
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await queryClient.invalidateQueries();
+      showToast('Dados atualizados com sucesso.', 'success');
+    } catch {
+      showToast('Erro ao atualizar dados.', 'error');
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   const handleLogout = async () => {
     try {
@@ -83,6 +100,7 @@ const AdminLayout: React.FC = () => {
     { name: 'Dashboard', path: '/', icon: LayoutDashboard },
     ...(isAdmin ? [{ name: 'Gestão de Imóveis', path: '/imoveis', icon: Home }] : []),
     { name: 'Mensagens Recebidas', path: '/mensagens', icon: MessageSquare },
+    { name: 'Vistas', path: '/vistas', icon: Calendar },
     { name: 'Clientes (CRM)', path: '/clientes', icon: Users },
     ...(isAdmin ? [{ name: 'Gestão de Usuários', path: '/gestao-usuarios', icon: UserCheck }] : []),
     ...(isAdmin ? [{ name: 'Gestão de Vendedores', path: '/vendedores', icon: UserCheck }] : []),
@@ -257,8 +275,17 @@ const AdminLayout: React.FC = () => {
           {/* Topbar User Profile */}
           <div className="flex items-center gap-4">
             <button
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+              className="rounded-lg p-2 text-gray-600 hover:bg-gray-100 dark:text-zinc-300 dark:hover:bg-zinc-800 transition-colors disabled:opacity-50 flex items-center justify-center cursor-pointer border-none bg-transparent"
+              aria-label="Atualizar dados"
+              title="Atualizar Dados"
+            >
+              <RefreshCw className={`h-4.5 w-4.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+            </button>
+            <button
               onClick={toggleDarkMode}
-              className="rounded-lg p-2 text-gray-600 hover:bg-gray-100 dark:text-zinc-300 dark:hover:bg-zinc-800 transition-colors"
+              className="rounded-lg p-2 text-gray-600 hover:bg-gray-100 dark:text-zinc-300 dark:hover:bg-zinc-800 transition-colors cursor-pointer border-none bg-transparent flex items-center justify-center"
               aria-label="Alternar modo escuro"
             >
               {darkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}

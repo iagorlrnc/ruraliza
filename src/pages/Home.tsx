@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { api } from '../services/api';
 import { useToast } from '../contexts/ToastContext';
 import { useSEO } from '../hooks/useSEO';
+import CaptchaWidget from '../components/CaptchaWidget';
 import { formatCurrency, formatArea } from '../utils/format';
 import { ESTADOS_BRASIL } from '../utils/estados';
 import { maskPhone } from '../utils/masks';
@@ -42,6 +43,12 @@ const Home: React.FC = () => {
   const [evalCargo, setEvalCargo] = useState('');
   const [evalTexto, setEvalTexto] = useState('');
 
+  // Captcha States
+  const [contactCaptchaToken, setContactCaptchaToken] = useState<string | null>(null);
+  const [contactCaptchaKey, setContactCaptchaKey] = useState(0);
+  const [evalCaptchaToken, setEvalCaptchaToken] = useState<string | null>(null);
+  const [evalCaptchaKey, setEvalCaptchaKey] = useState(0);
+
   // Fetch data
   const { data: properties = [], isLoading: loadingProperties } = useQuery({
     queryKey: ['properties'],
@@ -62,16 +69,21 @@ const Home: React.FC = () => {
 
   // Testimonial Submit Mutation
   const testimonialMutation = useMutation({
-    mutationFn: api.saveTestimonial,
+    mutationFn: (variables: { nome: string; cargo: string; texto: string }) =>
+      api.saveTestimonial(variables, evalCaptchaToken || undefined),
     onSuccess: () => {
       showToast('Obrigado! Sua avaliação foi registrada e enviada para o painel administrativo.', 'success');
       setEvalNome('');
       setEvalCargo('');
       setEvalTexto('');
+      setEvalCaptchaToken(null);
+      setEvalCaptchaKey(prev => prev + 1);
       queryClient.invalidateQueries({ queryKey: ['testimonials'] });
     },
     onError: () => {
       showToast('Ocorreu um erro ao enviar sua avaliação. Tente novamente.', 'error');
+      setEvalCaptchaToken(null);
+      setEvalCaptchaKey(prev => prev + 1);
     }
   });
 
@@ -81,6 +93,12 @@ const Home: React.FC = () => {
       showToast('Por favor, preencha todos os campos obrigatórios da avaliação.', 'error');
       return;
     }
+
+    if (!evalCaptchaToken) {
+      showToast('Por favor, confirme que você não é um robô.', 'error');
+      return;
+    }
+
     testimonialMutation.mutate({
       nome: evalNome,
       cargo: evalCargo,
@@ -202,7 +220,8 @@ const Home: React.FC = () => {
 
   // Submit Message Mutation
   const messageMutation = useMutation({
-    mutationFn: api.registrarMensagemContato,
+    mutationFn: (variables: { nome: string; email: string; telefone: string; assunto: string; mensagem: string; cidade: string }) =>
+      api.registrarMensagemContato(variables, contactCaptchaToken || undefined),
     onSuccess: () => {
       showToast('Mensagem enviada com sucesso! Um consultor entrará em contato em breve.', 'success');
       setNome('');
@@ -211,9 +230,13 @@ const Home: React.FC = () => {
       setMensagem('');
       setCidade('');
       setEstado('');
+      setContactCaptchaToken(null);
+      setContactCaptchaKey(prev => prev + 1);
     },
     onError: () => {
       showToast('Ocorreu um erro ao enviar a mensagem. Tente novamente.', 'error');
+      setContactCaptchaToken(null);
+      setContactCaptchaKey(prev => prev + 1);
     }
   });
 
@@ -221,6 +244,11 @@ const Home: React.FC = () => {
     e.preventDefault();
     if (!nome || !email || !mensagem || !cidade || !estado) {
       showToast('Por favor, preencha os campos obrigatórios (Nome, E-mail, Cidade, Estado e Mensagem).', 'error');
+      return;
+    }
+
+    if (!contactCaptchaToken) {
+      showToast('Por favor, confirme que você não é um robô.', 'error');
       return;
     }
 
@@ -904,10 +932,16 @@ const Home: React.FC = () => {
               </div>
             </div>
 
+            <CaptchaWidget
+              key={contactCaptchaKey}
+              onVerify={setContactCaptchaToken}
+              onExpire={() => setContactCaptchaToken(null)}
+            />
+
             <button
               type="submit"
-              disabled={messageMutation.isPending}
-              className="w-full rounded-xl bg-primary-dark hover:bg-primary-medium text-brand-beige py-3 text-xs font-bold transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer disabled:opacity-55"
+              disabled={messageMutation.isPending || !contactCaptchaToken}
+              className="w-full rounded-xl bg-primary-dark hover:bg-primary-medium text-brand-beige py-3 text-xs font-bold transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer disabled:opacity-55 disabled:cursor-not-allowed"
             >
               {messageMutation.isPending ? 'Enviando...' : 'Enviar Mensagem'}
             </button>
@@ -978,10 +1012,16 @@ const Home: React.FC = () => {
               />
             </div>
 
+            <CaptchaWidget
+              key={evalCaptchaKey}
+              onVerify={setEvalCaptchaToken}
+              onExpire={() => setEvalCaptchaToken(null)}
+            />
+
             <button
               type="submit"
-              disabled={testimonialMutation.isPending}
-              className="w-full rounded-xl bg-primary-dark hover:bg-primary-medium text-white py-3 text-xs font-bold transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer disabled:opacity-55"
+              disabled={testimonialMutation.isPending || !evalCaptchaToken}
+              className="w-full rounded-xl bg-primary-dark hover:bg-primary-medium text-white py-3 text-xs font-bold transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer disabled:opacity-55 disabled:cursor-not-allowed"
             >
               {testimonialMutation.isPending ? 'Enviando avaliação...' : 'Enviar Depoimento'}
             </button>

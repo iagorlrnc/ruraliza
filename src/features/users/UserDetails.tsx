@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../services/api';
 import { formatDate, formatDateTime, formatPhone } from '../../utils/format';
 import { useToast } from '../../contexts/ToastContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { 
   ArrowLeft, 
   Mail, 
@@ -14,13 +15,17 @@ import {
   ShieldCheck,
   Building,
   Activity,
-  AlertCircle,
   ExternalLink,
   Copy,
   Check,
-  Inbox
+  Inbox,
+  X,
+  Pencil,
+  Bookmark
 } from 'lucide-react';
 import { StatusVisita } from '../../types';
+import DetalheImovel from '../../pages/DetalheImovel';
+import { parseNotes } from '../../utils/notes';
 
 interface TimelineItem {
   id: string;
@@ -39,8 +44,14 @@ const UserDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const { showToast } = useToast();
   const queryClient = useQueryClient();
+  const { user: currentUser } = useAuth();
+
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'all' | 'visits' | 'messages'>('all');
+  const [selectedPropertyId, setSelectedPropertyId] = useState<string | null>(null);
+
+  // Notes state
+  const [editingNoteState, setEditingNoteState] = useState<{ messageId: string; noteIndex: number; text: string } | null>(null);
 
   // Fetch user profile details
   const { data: user, isLoading: loadingUser, error } = useQuery({
@@ -73,6 +84,48 @@ const UserDetails: React.FC = () => {
       showToast('Erro ao atualizar status da visita.', 'error');
     }
   });
+
+  // Edit Note Mutation
+  const editNoteMutation = useMutation({
+    mutationFn: (payload: { messageId: string; noteIndex: number; text: string }) => 
+      api.updateInternalNote(payload.messageId, payload.noteIndex, payload.text),
+    onSuccess: () => {
+      showToast('Observação atualizada com sucesso.', 'success');
+      queryClient.invalidateQueries({ queryKey: ['messages'] });
+      setEditingNoteState(null);
+    },
+    onError: () => {
+      showToast('Erro ao atualizar observação.', 'error');
+    }
+  });
+
+  // Delete Note Mutation
+  const deleteNoteMutation = useMutation({
+    mutationFn: (payload: { messageId: string; noteIndex: number }) => 
+      api.deleteInternalNote(payload.messageId, payload.noteIndex),
+    onSuccess: () => {
+      showToast('Observação excluída com sucesso.', 'success');
+      queryClient.invalidateQueries({ queryKey: ['messages'] });
+    },
+    onError: () => {
+      showToast('Erro ao excluir observação.', 'error');
+    }
+  });
+
+  const handleSaveEditedNote = () => {
+    if (!editingNoteState) return;
+    editNoteMutation.mutate({
+      messageId: editingNoteState.messageId,
+      noteIndex: editingNoteState.noteIndex,
+      text: editingNoteState.text.trim()
+    });
+  };
+
+  const handleDeleteNote = (messageId: string, noteIndex: number) => {
+    if (window.confirm('Tem certeza que deseja excluir esta nota?')) {
+      deleteNoteMutation.mutate({ messageId, noteIndex });
+    }
+  };
 
   if (loadingUser || loadingMessages || loadingVisits) {
     return (
@@ -366,6 +419,7 @@ const UserDetails: React.FC = () => {
               <div className="relative border-l border-gray-150 dark:border-zinc-800 ml-4 pl-6 space-y-6 py-2">
                 {filteredTimeline.map((item) => {
                   const isVisit = item.type === 'visit';
+                  const currentMessage = item.type === 'message' ? allMessages.find(m => m.id === item.id) : null;
 
                   return (
                     <div key={item.id} className="relative group">
@@ -396,14 +450,83 @@ const UserDetails: React.FC = () => {
                           {item.description}
                         </div>
 
-                        {/* Internal notes metadata if message has notes */}
-                        {item.metadata?.note && (
-                          <div className="bg-amber-50/50 dark:bg-zinc-800/50 p-2.5 rounded-xl border border-amber-100/50 dark:border-zinc-750 text-[10px] text-amber-800 dark:text-amber-400 font-sans flex items-start gap-1.5">
-                            <AlertCircle className="h-3.5 w-3.5 shrink-0 mt-0.5 text-amber-500" />
-                            <div>
-                              <strong className="block font-bold mb-0.5">Nota do Corretor:</strong>
-                              {item.metadata.note}
+                        {/* Note block below message */}
+                        {item.type === 'message' && currentMessage && (
+                          <div className="mt-4 border-t border-gray-250/20 dark:border-zinc-800/60 pt-4 space-y-3 shrink-0">
+                            
+                            {/* Notes List */}
+                            <div className="space-y-3">
+                              {parseNotes(currentMessage.observacao_interna).map((note, idx) => {
+                                const isMyNote = note.userId === currentUser?.id || note.userName === currentUser?.nome;
+                                const isEditing = editingNoteState?.messageId === currentMessage.id && editingNoteState?.noteIndex === idx;
+
+                                return (
+                                  <div key={idx} className="bg-amber-50/40 dark:bg-amber-950/10 p-3 rounded-2xl border border-amber-250/20 dark:border-amber-900/20 flex flex-col space-y-2">
+                                    <div className="flex items-center justify-between">
+                                      <div className="flex items-center gap-1.5">
+                                        <Bookmark className="h-3.5 w-3.5 text-amber-500" />
+                                        <span className="bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300 text-[9px] font-bold uppercase px-2 py-0.5 rounded">
+                                          Notas de {note.userName}
+                                        </span>
+                                      </div>
+                                      {isMyNote && (
+                                        <div className="flex items-center gap-1.5">
+                                          <button
+                                            type="button"
+                                            onClick={() => setEditingNoteState({ messageId: currentMessage.id, noteIndex: idx, text: note.text })}
+                                            className="text-gray-400 hover:text-primary-medium dark:hover:text-primary-light p-1 transition-colors border-none bg-transparent cursor-pointer flex items-center justify-center"
+                                            title="Editar Nota"
+                                          >
+                                            <Pencil className="h-3 w-3" />
+                                          </button>
+                                          <button
+                                            type="button"
+                                            onClick={() => handleDeleteNote(currentMessage.id, idx)}
+                                            className="text-gray-400 hover:text-red-655 p-1 transition-colors border-none bg-transparent cursor-pointer flex items-center justify-center"
+                                            title="Excluir Nota"
+                                          >
+                                            <X className="h-3.5 w-3.5" />
+                                          </button>
+                                        </div>
+                                      )}
+                                    </div>
+
+                                    {isEditing ? (
+                                      <div className="space-y-2">
+                                        <textarea
+                                          rows={2}
+                                          value={editingNoteState.text}
+                                          onChange={(e) => setEditingNoteState(prev => prev ? { ...prev, text: e.target.value } : null)}
+                                          className="w-full text-xs rounded-xl border border-primary-medium bg-white dark:bg-zinc-900 p-2.5 focus:outline-none dark:text-white resize-none"
+                                        />
+                                        <div className="flex justify-end gap-2">
+                                          <button
+                                            type="button"
+                                            onClick={() => setEditingNoteState(null)}
+                                            className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-gray-100 dark:bg-zinc-800 text-gray-600 dark:text-zinc-300 hover:bg-gray-200 dark:hover:bg-zinc-700 transition-colors border-none cursor-pointer"
+                                          >
+                                            Cancelar
+                                          </button>
+                                          <button
+                                            type="button"
+                                            onClick={handleSaveEditedNote}
+                                            className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-primary-dark text-white hover:bg-primary-medium transition-colors border-none cursor-pointer shadow-sm"
+                                          >
+                                            Salvar
+                                          </button>
+                                        </div>
+                                      </div>
+                                    ) : (
+                                      <p className="text-xs text-gray-700 dark:text-zinc-300 leading-relaxed font-sans whitespace-pre-wrap">
+                                        {note.text}
+                                      </p>
+                                    )}
+                                  </div>
+                                );
+                              })}
                             </div>
+
+
                           </div>
                         )}
 
@@ -420,12 +543,13 @@ const UserDetails: React.FC = () => {
                             {/* Actions for visits */}
                             <div className="flex gap-2">
                               {item.rawItem.imovel_id && (
-                                <Link
-                                  to={`/imoveis/editar/${item.rawItem.imovel_id}`}
-                                  className="text-[9px] bg-white hover:bg-gray-100 text-gray-700 border border-gray-250 dark:border-zinc-800 px-2.5 py-1.5 rounded-lg font-bold transition-all shadow-sm"
+                                <button
+                                  type="button"
+                                  onClick={() => setSelectedPropertyId(item.rawItem.imovel_id)}
+                                  className="text-[9px] bg-white hover:bg-gray-100 text-gray-700 border border-gray-250 dark:border-zinc-800 px-2.5 py-1.5 rounded-lg font-bold transition-all shadow-sm cursor-pointer"
                                 >
                                   Ver Imóvel
-                                </Link>
+                                </button>
                               )}
                               
                               {item.rawItem.status === 'Pendente' && (
@@ -458,6 +582,27 @@ const UserDetails: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {selectedPropertyId && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-zinc-900 rounded-3xl w-full max-w-5xl h-[85vh] flex flex-col overflow-hidden shadow-2xl border border-gray-150 dark:border-zinc-800 animate-in fade-in zoom-in-95 duration-200">
+            {/* Modal Header */}
+            <div className="flex justify-between items-center px-6 py-4 border-b border-gray-100 dark:border-zinc-800 shrink-0">
+              <h3 className="font-poppins font-bold text-gray-800 dark:text-white">Visualização do Anúncio (Simulação)</h3>
+              <button 
+                onClick={() => setSelectedPropertyId(null)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-white text-xs font-bold flex items-center gap-1 cursor-pointer border-none bg-transparent"
+              >
+                <X className="h-4 w-4" /> Fechar
+              </button>
+            </div>
+            {/* Modal Body */}
+            <div className="flex-1 overflow-y-auto">
+              <DetalheImovel id={selectedPropertyId} isPreview={true} onClose={() => setSelectedPropertyId(null)} hideInterestForm={true} />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

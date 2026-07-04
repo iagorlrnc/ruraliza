@@ -3,6 +3,7 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import { api } from '../services/api';
 import { useToast } from '../contexts/ToastContext';
 import { useSEO } from '../hooks/useSEO';
+import CaptchaWidget from '../components/CaptchaWidget';
 import { Phone, Mail, MapPin, MessageSquare, Clock } from 'lucide-react';
 import MapView from '../components/MapView';
 import { ESTADOS_BRASIL } from '../utils/estados';
@@ -25,8 +26,13 @@ const Contato: React.FC = () => {
   const [cidade, setCidade] = useState('');
   const [estado, setEstado] = useState('');
 
+  // Captcha State
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [captchaKey, setCaptchaKey] = useState(0);
+
   const mutation = useMutation({
-    mutationFn: api.registrarMensagemContato,
+    mutationFn: (variables: { nome: string; email: string; telefone: string; assunto: string; mensagem: string; cidade: string }) =>
+      api.registrarMensagemContato(variables, captchaToken || undefined),
     onSuccess: () => {
       showToast('Mensagem enviada com sucesso! Um consultor técnico retornará em breve.', 'success');
       setNome('');
@@ -36,9 +42,13 @@ const Contato: React.FC = () => {
       setMensagem('');
       setCidade('');
       setEstado('');
+      setCaptchaToken(null);
+      setCaptchaKey(prev => prev + 1);
     },
     onError: () => {
       showToast('Erro ao registrar sua mensagem. Tente novamente.', 'error');
+      setCaptchaToken(null);
+      setCaptchaKey(prev => prev + 1);
     }
   });
 
@@ -46,6 +56,11 @@ const Contato: React.FC = () => {
     e.preventDefault();
     if (!nome || !email || !mensagem || !cidade || !estado) {
       showToast('Por favor, preencha os campos obrigatórios (Nome, E-mail, Cidade, Estado e Mensagem).', 'error');
+      return;
+    }
+
+    if (!captchaToken) {
+      showToast('Por favor, confirme que você não é um robô.', 'error');
       return;
     }
 
@@ -259,10 +274,16 @@ const Contato: React.FC = () => {
               />
             </div>
 
+            <CaptchaWidget
+              key={captchaKey}
+              onVerify={setCaptchaToken}
+              onExpire={() => setCaptchaToken(null)}
+            />
+
             <button
               type="submit"
-              disabled={mutation.isPending}
-              className="w-full rounded-xl bg-primary-dark hover:bg-primary-medium text-white py-3 text-xs font-bold transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer disabled:opacity-55"
+              disabled={mutation.isPending || !captchaToken}
+              className="w-full rounded-xl bg-primary-dark hover:bg-primary-medium text-white py-3 text-xs font-bold transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer disabled:opacity-55 disabled:cursor-not-allowed"
             >
               <MessageSquare className="h-4 w-4" />
               {mutation.isPending ? 'Enviando...' : 'Enviar Mensagem'}

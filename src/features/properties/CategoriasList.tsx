@@ -185,53 +185,50 @@ const CategoriasList: React.FC = () => {
             return (
               <div 
                 key={cat.id}
-                className="bg-white dark:bg-zinc-900 border border-gray-150 dark:border-zinc-800 rounded-3xl overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col group"
+                className="relative h-40 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all group bg-zinc-950 text-left shrink-0"
               >
-                {/* Visual Image Banner */}
-                <div className="h-36 bg-gray-100 dark:bg-zinc-800 relative overflow-hidden shrink-0">
-                  {cat.imagem ? (
-                    <img 
-                      src={cat.imagem} 
-                      alt={cat.nome}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-550"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-gray-400">
-                      <ImageIcon className="h-8 w-8" />
-                    </div>
-                  )}
-                  <div className="absolute top-3 right-3 bg-white/90 dark:bg-zinc-800/90 backdrop-blur-sm px-2.5 py-1 rounded-full text-[9px] font-bold text-primary-dark dark:text-white uppercase tracking-wider">
-                    {count} {count === 1 ? 'imóvel' : 'imóveis'}
+                {/* Background image identical to public site */}
+                {cat.imagem ? (
+                  <img 
+                    src={cat.imagem} 
+                    alt={cat.nome}
+                    className="w-full h-full object-cover opacity-60 group-hover:scale-110 transition-transform duration-500"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-gray-500">
+                    <ImageIcon className="h-8 w-8" />
                   </div>
+                )}
+
+                {/* Dark gradient overlay matching public site */}
+                <div className="absolute inset-0 bg-gradient-to-t from-gray-950 via-gray-950/20 to-transparent"></div>
+
+                {/* Title and metadata at bottom-left */}
+                <div className="absolute bottom-3 left-3 text-left">
+                  <h3 className="font-poppins text-xs font-bold text-white group-hover:text-primary-light transition-colors">
+                    {cat.nome}
+                  </h3>
+                  <span className="text-[9px] text-brand-beige-dark/80 font-sans block mt-0.5">
+                    Tipo: {cat.tipo} • {count} {count === 1 ? 'imóvel' : 'imóveis'}
+                  </span>
                 </div>
 
-                {/* Content body */}
-                <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
-                  <div className="space-y-1">
-                    <h3 className="font-poppins text-sm font-bold text-gray-800 dark:text-white">
-                      {cat.nome}
-                    </h3>
-                    <p className="text-[10px] text-primary-medium dark:text-primary-light font-semibold tracking-wider uppercase">
-                      Tipo: {cat.tipo}
-                    </p>
-                  </div>
-
-                  <div className="flex gap-2 pt-4 border-t border-gray-100 dark:border-zinc-800 shrink-0">
-                    <button
-                      onClick={() => handleOpenEdit(cat)}
-                      className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider bg-gray-50 hover:bg-gray-100 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-gray-700 dark:text-zinc-300 transition-colors border border-gray-100 dark:border-zinc-800"
-                    >
-                      <Edit2 className="h-3.5 w-3.5" />
-                      Editar
-                    </button>
-                    <button
-                      onClick={() => handleDelete(cat)}
-                      className="flex items-center justify-center p-2 rounded-xl text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors border border-transparent hover:border-red-100 dark:hover:border-red-900/50"
-                      title="Excluir Categoria"
-                    >
-                      <Trash2 className="h-4.5 w-4.5" />
-                    </button>
-                  </div>
+                {/* Floating Admin Actions at top-right */}
+                <div className="absolute top-3 right-3 flex gap-2 z-30 opacity-80 group-hover:opacity-100 transition-opacity">
+                  <button
+                    onClick={() => handleOpenEdit(cat)}
+                    className="bg-white/90 hover:bg-white dark:bg-zinc-900/90 dark:hover:bg-zinc-800 text-gray-700 dark:text-zinc-200 p-2 rounded-xl border border-gray-200/50 shadow-md backdrop-blur-sm transition-colors cursor-pointer"
+                    title="Editar Categoria"
+                  >
+                    <Edit2 className="h-3.5 w-3.5" />
+                  </button>
+                  <button
+                    onClick={() => handleDelete(cat)}
+                    className="bg-rose-600 hover:bg-rose-700 text-white p-2 rounded-xl shadow-md transition-colors cursor-pointer border-none flex items-center justify-center"
+                    title="Excluir Categoria"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
                 </div>
               </div>
             );
@@ -303,7 +300,7 @@ const CategoriasList: React.FC = () => {
                   )}
 
                   <div className="flex items-center gap-2">
-                    <label className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-bold bg-primary-medium/10 text-primary-dark dark:text-primary-light hover:bg-primary-medium/20 transition-colors cursor-pointer border border-primary-medium/10">
+                    <label className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-bold bg-primary-medium/10 text-primary-dark dark:text-primary-light hover:bg-primary-medium/20 transition-colors cursor-pointer border border-primary-medium/10">
                       <ImageIcon className="h-4 w-4" />
                       {uploading ? 'Enviando...' : 'Carregar Imagem'}
                       <input 
@@ -314,13 +311,6 @@ const CategoriasList: React.FC = () => {
                         className="hidden" 
                       />
                     </label>
-                    <input 
-                      type="text"
-                      value={imagemUrl}
-                      onChange={(e) => setImagemUrl(e.target.value)}
-                      placeholder="Ou cole a URL direta da foto..."
-                      className="flex-[2] text-[10px] rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-800 py-2.5 px-3 focus:outline-none focus:border-primary-medium dark:text-white"
-                    />
                   </div>
                 </div>
               </div>

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { api, isSupabaseConfigured } from '../services/api';
 import { Usuario } from '../types';
@@ -8,7 +8,7 @@ interface AuthContextType {
   loading: boolean;
   isAdmin: boolean;
   isCorretor: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string, captchaToken?: string) => Promise<void>;
   logout: () => Promise<void>;
   error: string | null;
   clearError: () => void;
@@ -20,6 +20,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<Usuario | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const userRef = useRef<Usuario | null>(null);
+
+  useEffect(() => {
+    userRef.current = user;
+  }, [user]);
 
   const clearError = () => setError(null);
 
@@ -91,6 +97,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_IN' && session?.user) {
+        if (userRef.current && userRef.current.id === session.user.id) {
+          return;
+        }
         const wasRegistering = sessionStorage.getItem('ruraliza_is_registering');
         if (wasRegistering) {
           sessionStorage.removeItem('ruraliza_is_registering');
@@ -136,7 +145,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, []);
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string, captchaToken?: string) => {
     setError(null);
     setLoading(true);
 
@@ -190,7 +199,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const { error: signInError } = await supabase.auth.signInWithPassword({
         email,
-        password
+        password,
+        options: {
+          captchaToken
+        }
       });
       if (signInError) {
         const translatedMessage = signInError.message === 'Invalid login credentials'

@@ -39,6 +39,7 @@ import TestimonialsList from './features/testimonials/TestimonialsList';
 import SellersList from './features/sellers/SellersList';
 import Settings from './features/settings/Settings';
 import CategoriasList from './features/properties/CategoriasList';
+import VisitasList from './features/visitas/VisitasList';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -66,6 +67,8 @@ const App: React.FC = () => {
                 <Routes>
                   {/* Public Login Route inside admin subdomain */}
                   <Route path="/login" element={<AdminLogin />} />
+                  {/* Public Register Route inside admin subdomain */}
+                  <Route path="/cadastro" element={<AdminLogin />} />
 
                   {/* Protected Admin Routes */}
                   <Route element={<AdminLayout />}>
@@ -75,6 +78,7 @@ const App: React.FC = () => {
                     <Route path="/imoveis/editar/:id" element={<PropertyForm />} />
                     <Route path="/imoveis/categorias" element={<CategoriasList />} />
                     <Route path="/mensagens" element={<MessagesList />} />
+                    <Route path="/vistas" element={<VisitasList />} />
                     <Route path="/clientes" element={<UsersList />} />
                     <Route path="/clientes/:id" element={<UserDetails />} />
                     <Route path="/gestao-usuarios" element={<GestaoUsuarios />} />
