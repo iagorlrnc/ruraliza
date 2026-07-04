@@ -25,7 +25,8 @@ import {
   ShieldCheck, 
   Lock,
   MessageCircle,
-  Tractor, Fish, Sun, Waves, Warehouse, Leaf
+  Tractor, Fish, Sun, Waves, Warehouse, Leaf,
+  ChevronLeft, ChevronRight
 } from 'lucide-react';
 
 
@@ -129,6 +130,20 @@ const DetalheImovel: React.FC<DetalheImovelProps> = ({ id: idProp, isPreview = f
   const id = idProp || idParam;
   const { showToast } = useToast();
   const [activeImageIndex, setActiveImageIndex] = useState(0);
+
+  const handlePrevImage = () => {
+    const total = property?.imagens?.length || 0;
+    if (total > 0) {
+      setActiveImageIndex(prev => (prev === 0 ? total - 1 : prev - 1));
+    }
+  };
+
+  const handleNextImage = () => {
+    const total = property?.imagens?.length || 0;
+    if (total > 0) {
+      setActiveImageIndex(prev => (prev === total - 1 ? 0 : prev + 1));
+    }
+  };
 
   // Form states
   const [nome, setNome] = useState('');
@@ -427,37 +442,44 @@ const DetalheImovel: React.FC<DetalheImovelProps> = ({ id: idProp, isPreview = f
           <div className={hideInterestForm ? "grid grid-cols-1 lg:grid-cols-2 gap-6 items-start" : "space-y-8"}>
             {/* Main Gallery */}
             <div className="space-y-4">
-              <div className="relative aspect-[16/9] overflow-hidden rounded-3xl bg-gray-100 border border-gray-200 dark:border-zinc-800">
+              <div className="relative aspect-[16/9] overflow-hidden rounded-3xl bg-gray-100 border border-gray-200 dark:border-zinc-800 group">
                 <img
                   src={property.imagens && property.imagens.length > 0 ? property.imagens[activeImageIndex].url : '/imagesub.png'}
                   alt={property.titulo}
-                  className="w-full h-full object-cover transition-all"
+                  className="w-full h-full object-cover transition-all duration-300"
                 />
+                
+                {/* Carousel Controls */}
+                {property.imagens && property.imagens.length > 1 && (
+                  <>
+                    <button
+                      onClick={(e) => { e.currentTarget.blur(); handlePrevImage(); }}
+                      className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white dark:bg-zinc-900/90 dark:hover:bg-zinc-900 text-gray-700 dark:text-zinc-200 p-2.5 rounded-full border border-gray-200/50 shadow-md backdrop-blur-sm transition-all cursor-pointer opacity-0 group-hover:opacity-100 focus:outline-none focus-visible:opacity-100 flex items-center justify-center z-20"
+                      title="Imagem Anterior"
+                    >
+                      <ChevronLeft className="h-5 w-5" />
+                    </button>
+                    <button
+                      onClick={(e) => { e.currentTarget.blur(); handleNextImage(); }}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white dark:bg-zinc-900/90 dark:hover:bg-zinc-900 text-gray-700 dark:text-zinc-200 p-2.5 rounded-full border border-gray-200/50 shadow-md backdrop-blur-sm transition-all cursor-pointer opacity-0 group-hover:opacity-100 focus:outline-none focus-visible:opacity-100 flex items-center justify-center z-20"
+                      title="Próxima Imagem"
+                    >
+                      <ChevronRight className="h-5 w-5" />
+                    </button>
+                    <span className="absolute bottom-4 left-4 bg-black/60 text-white text-[10px] font-bold px-2.5 py-1 rounded-full backdrop-blur-sm">
+                      {activeImageIndex + 1} de {property.imagens.length}
+                    </span>
+                  </>
+                )}
+
                 <button
                   onClick={handleShare}
-                  className="absolute top-4 right-4 bg-white/90 hover:bg-white dark:bg-zinc-900/90 dark:hover:bg-zinc-900 text-gray-700 dark:text-zinc-200 p-2.5 rounded-xl border border-gray-200/50 shadow-md backdrop-blur-sm transition-colors cursor-pointer"
+                  className="absolute top-4 right-4 bg-white/90 hover:bg-white dark:bg-zinc-900/90 dark:hover:bg-zinc-900 text-gray-700 dark:text-zinc-200 p-2.5 rounded-xl border border-gray-200/50 shadow-md backdrop-blur-sm transition-colors cursor-pointer z-20"
                   title="Compartilhar Imóvel"
                 >
                   <Share2 className="h-4.5 w-4.5" />
                 </button>
               </div>
-
-              {/* Gallery Thumbnails */}
-              {property.imagens && property.imagens.length > 1 && (
-                <div className="flex gap-2 overflow-x-auto pb-1">
-                  {property.imagens.map((img, idx) => (
-                    <button
-                      key={img.id}
-                      onClick={() => setActiveImageIndex(idx)}
-                      className={`relative w-24 aspect-[4/3] rounded-xl overflow-hidden border-2 shrink-0 transition-all ${
-                        idx === activeImageIndex ? 'border-primary-medium' : 'border-transparent opacity-65 hover:opacity-100'
-                      }`}
-                    >
-                      <img src={img.url} alt={`Foto ${idx + 1}`} className="w-full h-full object-cover" />
-                    </button>
-                  ))}
-                </div>
-              )}
             </div>
 
             {/* Property Info Headers */}

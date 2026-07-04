@@ -1,5 +1,4 @@
 import { supabase } from '../lib/supabase';
-import { mockDb } from './mockData';
 import { parseNotes } from '../utils/notes';
 import { 
   Imovel, 
@@ -37,7 +36,7 @@ export const api = {
   // --- PROPERTIES (IMOVEIS) ---
   getProperties: async (): Promise<Imovel[]> => {
     if (!isSupabaseConfigured()) {
-      return mockDb.getProperties();
+      return [];
     }
 
     const { data, error } = await supabase
@@ -68,7 +67,7 @@ export const api = {
       status: row.status,
       created_at: row.created_at,
       updated_at: row.updated_at,
-      visualizacoes: row.visualizacoes !== undefined ? Number(row.visualizacoes || 0) : mockDb.getPropertyViews(row.id),
+      visualizacoes: Number(row.visualizacoes || 0),
       imagens: (row.tabela_imagens_imoveis || []).map((img: any) => ({
         id: img.id,
         imovel_id: img.imovel_id,
@@ -80,7 +79,7 @@ export const api = {
 
   getPropertyById: async (id: string): Promise<Imovel | undefined> => {
     if (!isSupabaseConfigured()) {
-      return mockDb.getPropertyById(id);
+      return undefined;
     }
 
     const { data, error } = await supabase
@@ -114,7 +113,7 @@ export const api = {
       status: data.status,
       created_at: data.created_at,
       updated_at: data.updated_at,
-      visualizacoes: data.visualizacoes !== undefined ? Number(data.visualizacoes || 0) : mockDb.getPropertyViews(data.id),
+      visualizacoes: Number(data.visualizacoes || 0),
       imagens: (data.tabela_imagens_imoveis || []).map((img: any) => ({
         id: img.id,
         imovel_id: img.imovel_id,
@@ -125,10 +124,6 @@ export const api = {
   },
 
   incrementPropertyViews: async (id: string): Promise<void> => {
-    // 1. Increment locally first
-    mockDb.incrementView(id);
-
-    // 2. Try incrementing in Supabase database if configured
     if (isSupabaseConfigured()) {
       try {
         await supabase.rpc('incrementar_visualizacoes_imovel', {
@@ -142,7 +137,7 @@ export const api = {
 
   saveProperty: async (property: Partial<Imovel> & { titulo: string }): Promise<Imovel> => {
     if (!isSupabaseConfigured()) {
-      return mockDb.saveProperty(property);
+      throw new Error('Supabase is not configured');
     }
 
     const isNew = !property.id;
@@ -215,7 +210,7 @@ export const api = {
 
   deleteProperty: async (id: string): Promise<boolean> => {
     if (!isSupabaseConfigured()) {
-      return mockDb.deletePropertySoft(id);
+      return false;
     }
 
     const { error } = await supabase
@@ -230,7 +225,7 @@ export const api = {
   // --- USERS ---
   getUsers: async (): Promise<Usuario[]> => {
     if (!isSupabaseConfigured()) {
-      return mockDb.getUsers();
+      return [];
     }
 
     const { data, error } = await supabase
@@ -247,7 +242,7 @@ export const api = {
 
   getUserById: async (id: string): Promise<Usuario | undefined> => {
     if (!isSupabaseConfigured()) {
-      return mockDb.getUserById(id);
+      return undefined;
     }
 
     const { data, error } = await supabase
@@ -276,7 +271,7 @@ export const api = {
 
   saveUser: async (user: Partial<Usuario> & { nome: string; email: string }): Promise<Usuario> => {
     if (!isSupabaseConfigured()) {
-      return mockDb.saveUser(user);
+      throw new Error('Supabase is not configured');
     }
 
     const emailLower = user.email.toLowerCase();
@@ -365,7 +360,7 @@ export const api = {
 
   deleteUser: async (id: string): Promise<boolean> => {
     if (!isSupabaseConfigured()) {
-      return mockDb.deleteUser(id);
+      return false;
     }
 
     const { data, error } = await supabase.rpc('admin_deletar_usuario', {
@@ -382,7 +377,7 @@ export const api = {
   // --- MESSAGES ---
   getMessages: async (): Promise<Mensagem[]> => {
     if (!isSupabaseConfigured()) {
-      return mockDb.getMessages();
+      return [];
     }
 
     const { data, error } = await supabase
@@ -454,8 +449,7 @@ export const api = {
     cidade?: string;
   }, captchaToken?: string): Promise<string> => {
     if (!isSupabaseConfigured()) {
-      const res = mockDb.registrarInteracaoCliente(payload);
-      return res.mensagemId;
+      throw new Error('Supabase is not configured');
     }
 
     // Call the security definer database RPC
@@ -481,7 +475,7 @@ export const api = {
 
   updateMessageStatus: async (id: string, status: StatusMensagem, observacao?: string, atribuidoAId?: string | null): Promise<boolean> => {
     if (!isSupabaseConfigured()) {
-      return mockDb.updateMessageStatus(id, status, observacao, atribuidoAId);
+      return false;
     }
 
     const payload: any = { 
@@ -507,7 +501,7 @@ export const api = {
 
   addInternalNote: async (messageId: string, userId: string, userName: string, noteText: string): Promise<boolean> => {
     if (!isSupabaseConfigured()) {
-      return mockDb.addInternalNote(messageId, userId, userName, noteText);
+      return false;
     }
 
     const { data, error: fetchError } = await supabase
@@ -543,7 +537,7 @@ export const api = {
 
   updateInternalNote: async (messageId: string, noteIndex: number, newText: string): Promise<boolean> => {
     if (!isSupabaseConfigured()) {
-      return mockDb.updateInternalNote(messageId, noteIndex, newText);
+      return false;
     }
 
     const { data, error: fetchError } = await supabase
@@ -573,7 +567,7 @@ export const api = {
 
   deleteInternalNote: async (messageId: string, noteIndex: number): Promise<boolean> => {
     if (!isSupabaseConfigured()) {
-      return mockDb.deleteInternalNote(messageId, noteIndex);
+      return false;
     }
 
     const { data, error: fetchError } = await supabase
@@ -602,7 +596,7 @@ export const api = {
   // --- VISIT REQUESTS ---
   getVisits: async (): Promise<SolicitacaoVisita[]> => {
     if (!isSupabaseConfigured()) {
-      return mockDb.getVisits();
+      return [];
     }
 
     const { data, error } = await supabase
@@ -635,8 +629,7 @@ export const api = {
     cidade?: string;
   }, captchaToken?: string): Promise<string> => {
     if (!isSupabaseConfigured()) {
-      const res = mockDb.registrarSolicitacaoVisita(payload);
-      return res.visitaId;
+      throw new Error('Supabase is not configured');
     }
 
     let query = supabase.rpc('registrar_solicitacao_visita', {
@@ -661,7 +654,7 @@ export const api = {
 
   updateVisitStatus: async (id: string, status: StatusVisita): Promise<boolean> => {
     if (!isSupabaseConfigured()) {
-      return mockDb.updateVisitStatus(id, status);
+      return false;
     }
 
     const { error } = await supabase
@@ -690,7 +683,7 @@ export const api = {
 
   saveTestimonial: async (testimonial: Partial<Depoimento> & { nome: string; cargo: string; texto: string }, captchaToken?: string): Promise<Depoimento> => {
     if (!isSupabaseConfigured()) {
-      return mockDb.saveTestimonial(testimonial);
+      throw new Error('Supabase is not configured');
     }
 
     if (testimonial.id) {
@@ -729,7 +722,7 @@ export const api = {
 
   deleteTestimonial: async (id: string): Promise<boolean> => {
     if (!isSupabaseConfigured()) {
-      return mockDb.deleteTestimonial(id);
+      return false;
     }
 
     const { error } = await supabase
@@ -743,7 +736,7 @@ export const api = {
 
   updateTestimonialApproval: async (id: string, aprovado: boolean): Promise<boolean> => {
     if (!isSupabaseConfigured()) {
-      return mockDb.updateTestimonialApproval(id, aprovado);
+      return false;
     }
 
     const { error } = await supabase
@@ -758,7 +751,19 @@ export const api = {
   // --- DASHBOARD METRICS ---
   getDashboardMetrics: async (): Promise<DashboardMetrics> => {
     if (!isSupabaseConfigured()) {
-      return mockDb.getMetrics();
+      return {
+        totalImoveis: 0,
+        imoveisVenda: 0,
+        imoveisAluguel: 0,
+        totalUsuarios: 0,
+        totalClientes: 0,
+        totalAdmins: 0,
+        totalMensagens: 0,
+        mensagensPendentes: 0,
+        leadsMes: 0,
+        solicitacoesVisita: 0,
+        totalVisualizacoes: 0
+      };
     }
 
     // Call Supabase queries in parallel for efficiency
@@ -787,12 +792,11 @@ export const api = {
         supabase.from('tabela_imoveis').select('visualizacoes').neq('status', 'Excluido')
       ]);
 
-      const mockMetrics = mockDb.getMetrics();
       const hasDatabaseViews = viewsResult.data && viewsResult.data.length > 0 && ('visualizacoes' in viewsResult.data[0]);
       
       const totalDatabaseViews = hasDatabaseViews
         ? viewsResult.data.reduce((sum: number, row: any) => sum + Number(row.visualizacoes || 0), 0)
-        : mockMetrics.totalVisualizacoes;
+        : 0;
 
       return {
         totalImoveis: propCount.count || 0,
@@ -803,13 +807,13 @@ export const api = {
         totalAdmins: adminCount.count || 0,
         totalMensagens: messageCount.count || 0,
         mensagensPendentes: pendingMsgCount.count || 0,
-        leadsMes: mockMetrics.leadsMes, // fallback to calculated monthly leads
+        leadsMes: 0,
         solicitacoesVisita: visitCount.count || 0,
         totalVisualizacoes: totalDatabaseViews
       };
     } catch (e) {
-      console.warn('Falha ao obter métricas do Supabase; utilizando mockDb como alternativa:', e);
-      return mockDb.getMetrics();
+      console.error('Falha ao obter métricas do Supabase:', e);
+      throw e;
     }
   },
 
@@ -839,7 +843,7 @@ export const api = {
 
   saveConfiguracoes: async (config: Partial<Configuracoes>): Promise<Configuracoes> => {
     if (!isSupabaseConfigured()) {
-      return mockDb.saveConfiguracoes(config);
+      throw new Error('Supabase is not configured');
     }
     const { data, error } = await supabase
       .from('tabela_configuracoes')
@@ -867,7 +871,7 @@ export const api = {
   // --- SELLERS ---
   getVendedores: async (): Promise<Vendedor[]> => {
     if (!isSupabaseConfigured()) {
-      return mockDb.getVendedores();
+      return [];
     }
     const { data, error } = await supabase
       .from('tabela_vendedores')
@@ -883,7 +887,7 @@ export const api = {
 
   saveVendedor: async (vendedor: Partial<Vendedor> & { nome: string; role: string; especializacao: string }): Promise<Vendedor> => {
     if (!isSupabaseConfigured()) {
-      return mockDb.saveVendedor(vendedor);
+      throw new Error('Supabase is not configured');
     }
     const payload = {
       nome: vendedor.nome,
@@ -918,7 +922,7 @@ export const api = {
 
   deleteVendedor: async (id: string): Promise<boolean> => {
     if (!isSupabaseConfigured()) {
-      return mockDb.deleteVendedor(id);
+      return false;
     }
     const { error } = await supabase
       .from('tabela_vendedores')
@@ -969,7 +973,7 @@ export const api = {
   // --- CATEGORIES ---
   getCategories: async (): Promise<Categoria[]> => {
     if (!isSupabaseConfigured()) {
-      return mockDb.getCategories();
+      return [];
     }
     const { data, error } = await supabase
       .from('tabela_categorias')
@@ -985,7 +989,7 @@ export const api = {
 
   saveCategory: async (category: Partial<Categoria> & { nome: string; tipo: string }): Promise<Categoria> => {
     if (!isSupabaseConfigured()) {
-      return mockDb.saveCategory(category);
+      throw new Error('Supabase is not configured');
     }
     const payload = {
       nome: category.nome,
@@ -1016,7 +1020,7 @@ export const api = {
 
   deleteCategory: async (id: string): Promise<boolean> => {
     if (!isSupabaseConfigured()) {
-      return mockDb.deleteCategory(id);
+      return false;
     }
     const { error } = await supabase
       .from('tabela_categorias')
