@@ -2,19 +2,19 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../services/api';
 import { useToast } from '../../contexts/ToastContext';
-import { formatDateTime, formatPhone, formatCurrency } from '../../utils/format';
+import { formatDateTime, formatPhone } from '../../utils/format';
 import { 
   Calendar, Clock, CheckCircle2, XCircle, Search, 
-  Phone, Mail, X, Inbox, Check,
+  Phone, Mail, X, Inbox, Check, Building, ChevronRight, ExternalLink, Archive,
 } from 'lucide-react';
 import { StatusVisita } from '../../types';
 import DetalheImovel from '../../pages/DetalheImovel';
 
 const statusConfig: Record<StatusVisita, { label: string; color: string; bg: string; icon: React.ElementType }> = {
   'Pendente': { label: 'Solicitada', color: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-50 dark:bg-amber-950/30 border-amber-200/50 dark:border-amber-800/30', icon: Clock },
-  'Confirmada': { label: 'Confirmada', color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200/50 dark:border-emerald-800/30', icon: CheckCircle2 },
-  'Cancelada': { label: 'Cancelada', color: 'text-rose-600 dark:text-rose-400', bg: 'bg-rose-50 dark:bg-rose-950/30 border-rose-200/50 dark:border-rose-800/30', icon: XCircle },
-  'Concluída': { label: 'Concluída', color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-950/30 border-blue-200/50 dark:border-blue-800/30', icon: Calendar }
+  'Confirmada': { label: 'Confirmada', color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-950/30 border-blue-200/50 dark:border-blue-800/30', icon: Calendar },
+  'Concluída': { label: 'Concluída', color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-250/30 dark:border-emerald-800/30', icon: CheckCircle2 },
+  'Cancelada': { label: 'Cancelada', color: 'text-rose-600 dark:text-rose-400', bg: 'bg-rose-50 dark:bg-rose-950/30 border-rose-200/50 dark:border-rose-800/30', icon: Archive }
 };
 
 const getInitials = (name: string) => {
@@ -23,12 +23,43 @@ const getInitials = (name: string) => {
   return name.substring(0, 2).toUpperCase();
 };
 
+const getAvatarColor = (name: string) => {
+  const colors = [
+    'from-primary-medium to-primary-dark',
+    'from-emerald-500 to-emerald-700',
+    'from-amber-500 to-amber-700',
+    'from-rose-500 to-rose-700',
+    'from-violet-500 to-violet-700',
+    'from-cyan-500 to-cyan-700',
+  ];
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  return colors[Math.abs(hash) % colors.length];
+};
+
+const timeAgo = (date: string) => {
+  const now = new Date();
+  const past = new Date(date);
+  const diffMs = now.getTime() - past.getTime();
+  const diffMin = Math.floor(diffMs / 60000);
+  if (diffMin < 1) return 'Agora';
+  if (diffMin < 60) return `${diffMin}min atrás`;
+  const diffHours = Math.floor(diffMin / 60);
+  if (diffHours < 24) return `${diffHours}h atrás`;
+  const diffDays = Math.floor(diffHours / 24);
+  if (diffDays === 1) return 'Ontem';
+  if (diffDays < 7) return `${diffDays} dias atrás`;
+  return formatDateTime(date);
+};
+
 const VisitasList: React.FC = () => {
   const { showToast } = useToast();
   const queryClient = useQueryClient();
   const [busca, setBusca] = useState('');
   const [filtroStatus, setFiltroStatus] = useState<string>('Pendente');
   const [selectedPropertyId, setSelectedPropertyId] = useState<string | null>(null);
+  const [selectedVisitId, setSelectedVisitId] = useState<string | null>(null);
+  const [ordenacao, setOrdenacao] = useState<string>('recentes');
 
   // Fetch all visit requests
   const { data: visits = [], isLoading } = useQuery({
@@ -73,7 +104,24 @@ const VisitasList: React.FC = () => {
     return matchesSearch && matchesStatus;
   });
 
+  const sortedVisits = [...filteredVisits].sort((a, b) => {
+    if (ordenacao === 'recentes') {
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    }
+    if (ordenacao === 'antigas') {
+      return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+    }
+    if (ordenacao === 'agendamento_proximo') {
+      return new Date(a.data_solicitada).getTime() - new Date(b.data_solicitada).getTime();
+    }
+    if (ordenacao === 'agendamento_distante') {
+      return new Date(b.data_solicitada).getTime() - new Date(a.data_solicitada).getTime();
+    }
+    return 0;
+  });
+
   // Count metrics
+  const countAll = visits.length;
   const countPending = visits.filter(v => v.status === 'Pendente').length;
   const countConfirmed = visits.filter(v => v.status === 'Confirmada').length;
   const countCompleted = visits.filter(v => v.status === 'Concluída').length;
@@ -94,32 +142,47 @@ const VisitasList: React.FC = () => {
       </div>
 
       {/* Metrics Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+        <button
+          onClick={() => setFiltroStatus('Todas')}
+          className={`p-4 rounded-3xl border transition-all text-left shadow-sm cursor-pointer ${
+            filtroStatus === 'Todas' 
+              ? 'bg-violet-50 dark:bg-violet-950/30 text-violet-600 dark:text-violet-400 border-violet-200/50 dark:border-violet-800/30' 
+              : 'bg-white dark:bg-zinc-900 border-gray-150 dark:border-zinc-800 hover:bg-gray-50/80 dark:hover:bg-zinc-800/50 text-gray-800 dark:text-white'
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <Inbox className="h-5 w-5 opacity-80" />
+            <span className="text-xs font-mono font-bold">{countAll}</span>
+          </div>
+          <strong className="block text-sm font-poppins font-bold mt-3">Todas</strong>
+        </button>
+
         <button
           onClick={() => setFiltroStatus('Pendente')}
           className={`p-4 rounded-3xl border transition-all text-left shadow-sm cursor-pointer ${
             filtroStatus === 'Pendente' 
-              ? 'bg-amber-500 text-white border-amber-600 dark:border-amber-400/20' 
-              : 'bg-white dark:bg-zinc-900 border-gray-150 dark:border-zinc-800 text-gray-800 dark:text-white'
+              ? 'bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 border-amber-200/50 dark:border-amber-800/30' 
+              : 'bg-white dark:bg-zinc-900 border-gray-150 dark:border-zinc-800 hover:bg-gray-50/80 dark:hover:bg-zinc-800/50 text-gray-800 dark:text-white'
           }`}
         >
           <div className="flex items-center justify-between">
             <Clock className="h-5 w-5 opacity-80" />
             <span className="text-xs font-mono font-bold">{countPending}</span>
           </div>
-          <strong className="block text-sm font-poppins font-bold mt-3">Solicitadas (Pendente)</strong>
+          <strong className="block text-sm font-poppins font-bold mt-3">Solicitadas</strong>
         </button>
 
         <button
           onClick={() => setFiltroStatus('Confirmada')}
           className={`p-4 rounded-3xl border transition-all text-left shadow-sm cursor-pointer ${
             filtroStatus === 'Confirmada' 
-              ? 'bg-emerald-600 text-white border-emerald-700 dark:border-emerald-500/20' 
-              : 'bg-white dark:bg-zinc-900 border-gray-150 dark:border-zinc-800 text-gray-800 dark:text-white'
+              ? 'bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 border-blue-200/50 dark:border-blue-800/30' 
+              : 'bg-white dark:bg-zinc-900 border-gray-150 dark:border-zinc-800 hover:bg-gray-50/80 dark:hover:bg-zinc-800/50 text-gray-800 dark:text-white'
           }`}
         >
           <div className="flex items-center justify-between">
-            <CheckCircle2 className="h-5 w-5 opacity-80" />
+            <Calendar className="h-5 w-5 opacity-80" />
             <span className="text-xs font-mono font-bold">{countConfirmed}</span>
           </div>
           <strong className="block text-sm font-poppins font-bold mt-3">Confirmadas</strong>
@@ -129,12 +192,12 @@ const VisitasList: React.FC = () => {
           onClick={() => setFiltroStatus('Concluída')}
           className={`p-4 rounded-3xl border transition-all text-left shadow-sm cursor-pointer ${
             filtroStatus === 'Concluída' 
-              ? 'bg-blue-600 text-white border-blue-700 dark:border-blue-500/20' 
-              : 'bg-white dark:bg-zinc-900 border-gray-150 dark:border-zinc-800 text-gray-800 dark:text-white'
+              ? 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 border-emerald-250/30 dark:border-emerald-800/30' 
+              : 'bg-white dark:bg-zinc-900 border-gray-150 dark:border-zinc-800 hover:bg-gray-50/80 dark:hover:bg-zinc-800/50 text-gray-800 dark:text-white'
           }`}
         >
           <div className="flex items-center justify-between">
-            <Calendar className="h-5 w-5 opacity-80" />
+            <CheckCircle2 className="h-5 w-5 opacity-80" />
             <span className="text-xs font-mono font-bold">{countCompleted}</span>
           </div>
           <strong className="block text-sm font-poppins font-bold mt-3">Concluídas</strong>
@@ -144,8 +207,8 @@ const VisitasList: React.FC = () => {
           onClick={() => setFiltroStatus('Cancelada')}
           className={`p-4 rounded-3xl border transition-all text-left shadow-sm cursor-pointer ${
             filtroStatus === 'Cancelada' 
-              ? 'bg-rose-600 text-white border-rose-700 dark:border-rose-500/20' 
-              : 'bg-white dark:bg-zinc-900 border-gray-150 dark:border-zinc-800 text-gray-800 dark:text-white'
+              ? 'bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 border-rose-200/50 dark:border-rose-800/30' 
+              : 'bg-white dark:bg-zinc-900 border-gray-150 dark:border-zinc-800 hover:bg-gray-50/80 dark:hover:bg-zinc-800/50 text-gray-800 dark:text-white'
           }`}
         >
           <div className="flex items-center justify-between">
@@ -157,10 +220,10 @@ const VisitasList: React.FC = () => {
       </div>
 
       {/* Control panel and filters */}
-      <div className="bg-white dark:bg-zinc-900 border border-gray-150 dark:border-zinc-800 p-4 rounded-2xl shadow-sm flex flex-col md:flex-row gap-4 items-center justify-between">
+      <div className="bg-white dark:bg-zinc-900 border border-gray-150 dark:border-zinc-800 p-4 rounded-2xl shadow-sm flex flex-col sm:flex-row gap-4 items-center justify-between">
         
         {/* Search */}
-        <div className="relative w-full md:max-w-md">
+        <div className="relative flex-1 w-full">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
           <input
             type="text"
@@ -171,21 +234,19 @@ const VisitasList: React.FC = () => {
           />
         </div>
 
-        {/* Tab filters */}
-        <div className="flex bg-gray-100/50 dark:bg-zinc-800/40 p-1 rounded-xl border border-gray-250/50 dark:border-zinc-800 text-[11px] font-bold w-full md:w-auto overflow-x-auto shrink-0 justify-center">
-          {['Pendente', 'Confirmada', 'Concluída', 'Cancelada', 'Todas'].map((status) => (
-            <button
-              key={status}
-              onClick={() => setFiltroStatus(status)}
-              className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer whitespace-nowrap ${
-                filtroStatus === status 
-                  ? 'bg-white dark:bg-zinc-900 text-primary-medium shadow-sm border border-gray-200/20 dark:border-zinc-700/50' 
-                  : 'text-gray-500 hover:text-gray-700 dark:hover:text-zinc-300'
-              }`}
-            >
-              {status === 'Todas' ? 'Todas' : statusConfig[status as StatusVisita]?.label}
-            </button>
-          ))}
+        {/* Sort Select */}
+        <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto">
+          <span className="text-[11px] font-bold text-gray-400 dark:text-zinc-550 whitespace-nowrap">Classificar por:</span>
+          <select
+            value={ordenacao}
+            onChange={(e) => setOrdenacao(e.target.value)}
+            className="w-full sm:w-auto bg-gray-50/50 dark:bg-zinc-950/40 border border-gray-250 dark:border-zinc-800 text-[11px] font-bold text-gray-650 dark:text-zinc-300 rounded-xl px-3 py-2 focus:outline-none focus:border-primary-medium cursor-pointer transition-colors"
+          >
+            <option value="recentes">Mais Recentes</option>
+            <option value="antigas">Mais Antigas</option>
+            <option value="agendamento_proximo">Agendamento: Mais Próximo</option>
+            <option value="agendamento_distante">Agendamento: Mais Distante</option>
+          </select>
         </div>
       </div>
 
@@ -203,142 +264,184 @@ const VisitasList: React.FC = () => {
           <p className="text-xs text-gray-400 dark:text-zinc-500 font-medium">Nenhuma visita encontrada para este filtro.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {filteredVisits.map((visit) => {
+        <div className="border border-gray-150 dark:border-zinc-800 bg-white dark:bg-zinc-900 rounded-3xl shadow-sm divide-y divide-gray-100 dark:divide-zinc-800/70 overflow-hidden">
+          {sortedVisits.map((visit) => {
             const statusInfo = statusConfig[visit.status] || statusConfig['Pendente'];
-            const StatusIcon = statusInfo.icon;
             const clientName = visit.usuario?.nome || 'Cliente Interessado';
+            const isNew = visit.status === 'Pendente';
+            const active = selectedVisitId === visit.id;
             
             return (
               <div 
                 key={visit.id} 
-                className="bg-white dark:bg-zinc-900 border border-gray-150 dark:border-zinc-800 rounded-3xl p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between gap-5 relative overflow-hidden"
+                onClick={() => setSelectedVisitId(active ? null : visit.id)}
+                className={`p-4 text-left cursor-pointer transition-all relative ${
+                  active 
+                    ? 'bg-primary-medium/10 dark:bg-zinc-800' 
+                    : 'hover:bg-primary-medium/5 dark:hover:bg-zinc-800/60'
+                }`}
               >
-                {/* Left vertical indicator stripe */}
-                <div className={`absolute left-0 top-0 bottom-0 w-1 ${
-                  visit.status === 'Pendente' ? 'bg-amber-400' :
-                  visit.status === 'Confirmada' ? 'bg-emerald-500' :
-                  visit.status === 'Concluída' ? 'bg-blue-500' : 'bg-rose-500'
+                {/* Left vertical indicator stripe matching message card style */}
+                <div className={`absolute left-0 top-3 bottom-3 w-[3px] rounded-r-full ${
+                  visit.status === 'Pendente' ? 'bg-amber-500' :
+                  visit.status === 'Confirmada' ? 'bg-blue-500' :
+                  visit.status === 'Concluída' ? 'bg-emerald-500' : 'bg-rose-500'
                 }`} />
 
-                {/* Card Header: Client details */}
-                <div className="flex items-start gap-4">
-                  <div className="h-11 w-11 rounded-2xl bg-gradient-to-br from-primary-medium to-primary-dark text-white flex items-center justify-center font-poppins font-black text-sm shadow-sm shrink-0">
-                    {getInitials(clientName)}
+                {/* Pulsing dot for new/pending visits matching new messages */}
+                {isNew && (
+                  <div className="absolute top-4 right-4 h-2 w-2 rounded-full bg-amber-500 animate-pulse"></div>
+                )}
+
+                {/* Card Header matching MessagesList items layout */}
+                <div className="flex gap-3">
+                  {/* Avatar */}
+                  <div className={`h-10 w-10 rounded-xl bg-gradient-to-br ${getAvatarColor(clientName)} flex items-center justify-center shrink-0 shadow-sm`}>
+                    <span className="text-white text-[11px] font-bold">{getInitials(clientName)}</span>
                   </div>
-                  <div className="min-w-0 flex-1 space-y-1">
-                    <div className="flex items-center justify-between gap-2">
-                      <h4 className="font-poppins font-bold text-gray-850 dark:text-white text-xs truncate">
+
+                  <div className="flex-1 min-w-0">
+                    <div className="flex justify-between items-start gap-2">
+                      <span className={`text-xs truncate block ${isNew ? 'font-bold text-gray-800 dark:text-white' : 'font-semibold text-gray-600 dark:text-zinc-300'}`}>
                         {clientName}
-                      </h4>
-                      <span className={`text-[8px] font-bold px-2 py-0.5 rounded-md border tracking-wide flex items-center gap-1 shrink-0 ${statusInfo.bg} ${statusInfo.color}`}>
-                        <StatusIcon className="h-3 w-3" /> {statusInfo.label}
+                      </span>
+                      <span className="text-[9px] text-gray-400 dark:text-zinc-555 shrink-0 font-medium">
+                        {timeAgo(visit.created_at)}
                       </span>
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-gray-400 dark:text-zinc-550">
+                    <h4 className={`text-[11px] truncate mt-0.5 ${isNew ? 'font-bold text-primary-dark dark:text-primary-light' : 'font-semibold text-gray-500 dark:text-zinc-400'}`}>
+                      Solicitação de Visita
+                    </h4>
+
+                    <div className="flex items-center justify-between mt-1.5 gap-2">
+                      <p className="text-[10px] text-gray-400 dark:text-zinc-550 line-clamp-1 flex-1 font-sans">
+                        {visit.observacoes || "Nenhuma observação informada."}
+                      </p>
+                      <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded-md border shrink-0 ${statusInfo.bg} ${statusInfo.color}`}>
+                        {statusInfo.label}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Expanded Card Body: Details & related property mini card & actions */}
+                {active && (
+                  <div className="pl-[52px] mt-4 space-y-3" onClick={(e) => e.stopPropagation()}>
+                    {/* Contact info chips */}
+                    <div className="flex flex-wrap gap-2">
+                      {visit.usuario?.email && (
+                        <a
+                          href={`mailto:${visit.usuario.email}`}
+                          className="inline-flex items-center gap-1.5 text-[10px] font-medium text-gray-600 dark:text-zinc-300 bg-gray-50 dark:bg-zinc-800 px-2.5 py-1.5 rounded-lg border border-gray-150 dark:border-zinc-700 hover:bg-gray-100 dark:hover:bg-zinc-750 transition-colors"
+                        >
+                          <Mail className="h-3 w-3 text-gray-400" />
+                          {visit.usuario.email}
+                        </a>
+                      )}
                       {visit.usuario?.telefone && (
-                        <a 
+                        <a
+                          href={`tel:${visit.usuario.telefone}`}
+                          className="inline-flex items-center gap-1.5 text-[10px] font-medium text-gray-600 dark:text-zinc-300 bg-gray-50 dark:bg-zinc-800 px-2.5 py-1.5 rounded-lg border border-gray-150 dark:border-zinc-700 hover:bg-gray-100 dark:hover:bg-zinc-750 transition-colors"
+                        >
+                          <Phone className="h-3 w-3 text-gray-400" />
+                          {formatPhone(visit.usuario.telefone)}
+                        </a>
+                      )}
+                      {visit.usuario?.telefone && (
+                        <a
                           href={`https://wa.me/55${visit.usuario.telefone.replace(/\D/g, '')}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="flex items-center gap-1 hover:text-emerald-500 transition-colors"
+                          className="inline-flex items-center gap-1.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/20 px-2.5 py-1.5 rounded-lg border border-emerald-200/50 dark:border-emerald-800/30 hover:bg-emerald-100 dark:hover:bg-emerald-900/30 transition-colors"
                         >
-                          <Phone className="h-3.5 w-3.5 text-gray-400" />
-                          <span>{formatPhone(visit.usuario.telefone)}</span>
+                          <ExternalLink className="h-3 w-3" />
+                          WhatsApp
                         </a>
                       )}
-                      {visit.usuario?.email && (
-                        <div className="flex items-center gap-1">
-                          <Mail className="h-3.5 w-3.5" />
-                          <span>{visit.usuario.email}</span>
-                        </div>
+                    </div>
+
+                    {/* Appointment info matching note style */}
+                    <div className="bg-gray-50/80 dark:bg-zinc-800/50 p-4 rounded-2xl border border-gray-100 dark:border-zinc-800/50 space-y-3">
+                      <div className="flex items-center gap-1.5">
+                        <Clock className="h-3.5 w-3.5 text-gray-400 dark:text-zinc-555" />
+                        <span className="text-[10px] font-bold text-gray-400 dark:text-zinc-555 uppercase tracking-wider">Agendamento</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-gray-800 dark:text-zinc-200 font-bold text-xs">
+                        <Calendar className="h-4 w-4 text-primary-medium" />
+                        <span>{formatDateTime(visit.data_solicitada)}</span>
+                      </div>
+                      {visit.observacoes && (
+                        <p className="text-xs text-gray-600 dark:text-zinc-400 italic font-sans leading-relaxed border-t border-gray-100 dark:border-zinc-800/50 pt-2.5 mt-2.5">
+                          "{visit.observacoes}"
+                        </p>
                       )}
                     </div>
-                  </div>
-                </div>
 
-                {/* Card Body: Request scheduling detail & property mini card */}
-                <div className="space-y-4">
-                  
-                  {/* Appointment info */}
-                  <div className="bg-gray-50/50 dark:bg-zinc-950/30 border border-gray-150 dark:border-zinc-800/80 p-3 rounded-2xl space-y-1">
-                    <span className="text-[9px] text-gray-400 font-bold uppercase tracking-wider block">Data Solicitada</span>
-                    <div className="flex items-center gap-1.5 text-gray-800 dark:text-zinc-300 font-sans font-bold text-xs">
-                      <Calendar className="h-4 w-4 text-primary-medium" />
-                      <span>{formatDateTime(visit.data_solicitada)}</span>
-                    </div>
-                    {visit.observacoes && (
-                      <p className="text-[11px] text-gray-500 dark:text-zinc-450 pt-1 border-t border-gray-150 dark:border-zinc-850 mt-2 italic font-sans leading-relaxed">
-                        "{visit.observacoes}"
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Property Mini-Card */}
-                  {visit.imovel && (
-                    <div className="bg-white dark:bg-zinc-900 border border-gray-150 dark:border-zinc-800 rounded-2xl p-2.5 flex items-center gap-3">
-                      <img 
-                        src={visit.imovel.imagens?.[0]?.url || 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=400&q=80'} 
-                        alt={visit.imovel.titulo}
-                        className="h-14 w-20 object-cover rounded-xl shrink-0 bg-gray-50"
-                      />
-                      <div className="min-w-0 flex-1">
-                        <strong className="block text-[9px] text-primary-medium font-bold uppercase tracking-wider">Código {visit.imovel.codigo}</strong>
-                        <h5 className="font-poppins font-bold text-gray-800 dark:text-white text-[11px] truncate mt-0.5 leading-tight">{visit.imovel.titulo}</h5>
-                        <div className="flex items-center gap-2 text-[10px] text-gray-500 dark:text-zinc-400 mt-1 font-semibold">
-                          <span>{formatCurrency(visit.imovel.valor)}</span>
-                          <span className="text-gray-300 dark:text-zinc-700">•</span>
-                          <span>{visit.imovel.cidade} - {visit.imovel.estado}</span>
+                    {/* Related Property matching MessagesList details style */}
+                    {visit.imovel && (
+                      <div className="flex items-center justify-between p-3.5 rounded-2xl border border-primary-medium/20 bg-primary-medium/5">
+                        <div className="flex items-center gap-3">
+                          <div className="h-9 w-9 rounded-xl bg-primary-medium/10 flex items-center justify-center shrink-0">
+                            <Building className="h-4 w-4 text-primary-medium" />
+                          </div>
+                          <div className="min-w-0">
+                            <span className="font-bold block text-xs text-primary-dark dark:text-primary-light truncate">
+                              {visit.imovel.codigo} — {visit.imovel.titulo}
+                            </span>
+                            <span className="text-[10px] text-gray-400 dark:text-zinc-550 font-sans block truncate">
+                              {visit.imovel.cidade} / {visit.imovel.estado}
+                            </span>
+                          </div>
                         </div>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedPropertyId(visit.imovel_id)}
+                          className="text-[10px] bg-primary-dark hover:bg-primary-medium text-white px-3 py-1.5 rounded-lg font-bold transition-colors flex items-center gap-1 cursor-pointer border-none shrink-0"
+                        >
+                          Ver <ChevronRight className="h-3 w-3" />
+                        </button>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => setSelectedPropertyId(visit.imovel_id)}
-                        className="text-[9px] bg-gray-50 hover:bg-gray-100 dark:bg-zinc-800 dark:hover:bg-zinc-750 text-gray-700 dark:text-zinc-300 border border-gray-200 dark:border-zinc-700 px-2.5 py-1.5 rounded-xl font-bold transition-all shrink-0 cursor-pointer shadow-sm"
-                      >
-                        Ver Imóvel
-                      </button>
-                    </div>
-                  )}
-                </div>
+                    )}
 
-                {/* Card Footer: Action button workflows */}
-                {visit.status === 'Pendente' && (
-                  <div className="flex gap-2.5 pt-2 border-t border-gray-100 dark:border-zinc-800/80">
-                    <button
-                      type="button"
-                      onClick={() => handleUpdateStatus(visit.id, 'Confirmada')}
-                      className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-2 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-1.5 cursor-pointer border-none"
-                    >
-                      <Check className="h-4 w-4" /> Confirmar Visita
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleUpdateStatus(visit.id, 'Cancelada')}
-                      className="bg-gray-50 hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200/50 dark:bg-zinc-800 dark:hover:bg-rose-950/20 dark:hover:text-rose-400 text-gray-650 dark:text-zinc-300 border border-gray-200 dark:border-zinc-750 py-2 px-3.5 rounded-xl text-xs font-bold transition-all cursor-pointer"
-                    >
-                      Recusar
-                    </button>
-                  </div>
-                )}
+                    {/* Card Footer: Action button workflows */}
+                    {visit.status === 'Pendente' && (
+                      <div className="flex gap-2.5 pt-3 border-t border-gray-100 dark:border-zinc-800/50">
+                        <button
+                          type="button"
+                          onClick={() => handleUpdateStatus(visit.id, 'Confirmada')}
+                          className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-2 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-1.5 cursor-pointer border-none"
+                        >
+                          <Check className="h-4 w-4" /> Confirmar Visita
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleUpdateStatus(visit.id, 'Cancelada')}
+                          className="bg-gray-50 hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200/50 dark:bg-zinc-800 dark:hover:bg-rose-950/20 dark:hover:text-rose-400 text-gray-650 dark:text-zinc-300 border border-gray-200 dark:border-zinc-750 py-2 px-3.5 rounded-xl text-xs font-bold transition-all cursor-pointer"
+                        >
+                          Recusar
+                        </button>
+                      </div>
+                    )}
 
-                {visit.status === 'Confirmada' && (
-                  <div className="flex gap-2.5 pt-2 border-t border-gray-100 dark:border-zinc-800/80">
-                    <button
-                      type="button"
-                      onClick={() => handleUpdateStatus(visit.id, 'Concluída')}
-                      className="flex-1 bg-primary-dark hover:bg-primary-medium text-white py-2 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-1.5 cursor-pointer border-none"
-                    >
-                      <Check className="h-4 w-4" /> Marcar como Concluída
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleUpdateStatus(visit.id, 'Cancelada')}
-                      className="bg-gray-50 hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200/50 dark:bg-zinc-800 dark:hover:bg-rose-950/20 dark:hover:text-rose-400 text-gray-650 dark:text-zinc-300 border border-gray-200 dark:border-zinc-750 py-2 px-3.5 rounded-xl text-xs font-bold transition-all cursor-pointer"
-                    >
-                      Cancelar Visita
-                    </button>
+                    {visit.status === 'Confirmada' && (
+                      <div className="flex gap-2.5 pt-3 border-t border-gray-100 dark:border-zinc-800/50">
+                        <button
+                          type="button"
+                          onClick={() => handleUpdateStatus(visit.id, 'Concluída')}
+                          className="flex-1 bg-primary-dark hover:bg-primary-medium text-white py-2 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-1.5 cursor-pointer border-none"
+                        >
+                          <Check className="h-4 w-4" /> Marcar como Concluída
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleUpdateStatus(visit.id, 'Cancelada')}
+                          className="bg-gray-50 hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200/50 dark:bg-zinc-800 dark:hover:bg-rose-950/20 dark:hover:text-rose-400 text-gray-650 dark:text-zinc-300 border border-gray-200 dark:border-zinc-750 py-2 px-3.5 rounded-xl text-xs font-bold transition-all cursor-pointer"
+                        >
+                          Cancelar Visita
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

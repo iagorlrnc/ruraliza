@@ -100,7 +100,7 @@ const AdminLayout: React.FC = () => {
     { name: 'Dashboard', path: '/', icon: LayoutDashboard },
     ...(isAdmin ? [{ name: 'Gestão de Imóveis', path: '/imoveis', icon: Home }] : []),
     { name: 'Mensagens Recebidas', path: '/mensagens', icon: MessageSquare },
-    { name: 'Vistas', path: '/vistas', icon: Calendar },
+    { name: 'Visitas', path: '/visitas', icon: Calendar },
     { name: 'Clientes (CRM)', path: '/clientes', icon: Users },
     ...(isAdmin ? [{ name: 'Gestão de Usuários', path: '/gestao-usuarios', icon: UserCheck }] : []),
     ...(isAdmin ? [{ name: 'Gestão de Vendedores', path: '/vendedores', icon: UserCheck }] : []),

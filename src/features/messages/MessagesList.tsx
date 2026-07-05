@@ -14,10 +14,10 @@ import DetalheImovel from '../../pages/DetalheImovel';
 import { parseNotes } from '../../utils/notes';
 
 const statusConfig: Record<StatusMensagem, { label: string; color: string; bg: string; icon: React.ElementType }> = {
-  'Nova': { label: 'Nova', color: 'text-rose-600 dark:text-rose-400', bg: 'bg-rose-50 dark:bg-rose-950/30 border-rose-200/50 dark:border-rose-800/30', icon: Inbox },
+  'Nova': { label: 'Nova', color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-250/30 dark:border-emerald-800/30', icon: Inbox },
   'Em andamento': { label: 'Em andamento', color: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-50 dark:bg-amber-950/30 border-amber-200/50 dark:border-amber-800/30', icon: Clock },
-  'Respondida': { label: 'Respondida', color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200/50 dark:border-emerald-800/30', icon: CheckCircle2 },
-  'Arquivada': { label: 'Arquivada', color: 'text-gray-500 dark:text-zinc-400', bg: 'bg-gray-50 dark:bg-zinc-800/50 border-gray-200/50 dark:border-zinc-700/30', icon: Archive },
+  'Respondida': { label: 'Respondida', color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-950/30 border-blue-200/50 dark:border-blue-800/30', icon: CheckCircle2 },
+  'Arquivada': { label: 'Arquivada', color: 'text-rose-600 dark:text-rose-400', bg: 'bg-rose-50 dark:bg-rose-950/30 border-rose-200/50 dark:border-rose-800/30', icon: Archive },
 };
 
 const getInitials = (name: string) => {
@@ -325,9 +325,9 @@ const MessagesList: React.FC = () => {
       </div>
 
       {/* Split Pane View */}
-      <div className="flex-1 flex gap-5">
+      <div className="flex-1 flex gap-5 h-[calc(100dvh-230px)] min-h-[480px]">
         {/* Messages List pane */}
-        <section className="w-full sm:w-[380px] shrink-0 border border-gray-150 dark:border-zinc-800 bg-white dark:bg-zinc-900 rounded-3xl shadow-sm">
+        <section className="w-full sm:w-[380px] shrink-0 border border-gray-150 dark:border-zinc-800 bg-white dark:bg-zinc-900 rounded-3xl shadow-sm flex flex-col overflow-hidden h-full">
           {isLoading ? (
             <div className="p-4 space-y-3">
               {[...Array(5)].map((_, i) => (
@@ -344,7 +344,7 @@ const MessagesList: React.FC = () => {
               </p>
             </div>
           ) : (
-            <div className="divide-y divide-gray-100 dark:divide-zinc-800/70">
+            <div className="divide-y divide-gray-100 dark:divide-zinc-800/70 overflow-y-auto flex-1">
               {filteredMessages.map((msg) => {
                 const active = selectedMessage?.id === msg.id;
                 const sConfig = statusConfig[msg.status];
@@ -411,7 +411,7 @@ const MessagesList: React.FC = () => {
 
                     {/* New message dot */}
                     {isNew && (
-                      <div className="absolute top-4 right-4 h-2 w-2 rounded-full bg-rose-500 animate-pulse"></div>
+                      <div className="absolute top-4 right-4 h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></div>
                     )}
                   </div>
                 );
@@ -421,7 +421,7 @@ const MessagesList: React.FC = () => {
         </section>
 
         {/* Message Detail pane */}
-        <section className="hidden sm:flex flex-1 border border-gray-150 dark:border-zinc-800 bg-white dark:bg-zinc-900 rounded-3xl shadow-sm flex-col overflow-hidden">
+        <section className="hidden sm:flex flex-1 border border-gray-150 dark:border-zinc-800 bg-white dark:bg-zinc-900 rounded-3xl shadow-sm flex-col overflow-hidden h-full">
           {selectedMessage ? (() => {
             const sConfig = statusConfig[selectedMessage.status];
             const isAssignedToCurrentUser = selectedMessage.atribuido_a_id === currentUser?.id;
@@ -534,8 +534,8 @@ const MessagesList: React.FC = () => {
                 </div>
 
                 {/* Message Content */}
-                <div className="flex-1 p-5 space-y-4 flex flex-col">
-                  <div className="bg-gray-50/80 dark:bg-zinc-800/50 p-4 rounded-2xl border border-gray-100 dark:border-zinc-800/50 flex-1 flex flex-col">
+                <div className="flex-1 p-5 space-y-4 flex flex-col overflow-y-auto">
+                  <div className="bg-gray-50/80 dark:bg-zinc-800/50 p-4 rounded-2xl border border-gray-100 dark:border-zinc-800/50 flex flex-col shrink-0">
                     <div className="flex items-center gap-1.5 mb-3">
                       <MessageSquare className="h-3.5 w-3.5 text-gray-400 dark:text-zinc-500" />
                       <span className="text-[10px] font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-wider">Mensagem</span>

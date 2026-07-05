@@ -9,6 +9,46 @@ import { maskPhone, maskCreci } from '../../utils/masks';
 import { useTheme } from '../../contexts/ThemeContext';
 import CaptchaWidget from '../../components/CaptchaWidget';
 
+const translateSupabaseError = (msg: string): string => {
+  if (!msg || msg === '{}' || msg.trim() === '{}' || msg === 'null') {
+    return 'E-mail inválido ou inexistente. Por favor, verifique se a digitação está correta.';
+  }
+  const lowerMsg = msg.toLowerCase();
+  
+  if (lowerMsg.includes('invalid email') || lowerMsg.includes('email is invalid') || lowerMsg.includes('bad email') || lowerMsg.includes('email address')) {
+    return 'E-mail inválido ou inexistente. Por favor, verifique se a digitação está correta.';
+  }
+  if (lowerMsg.includes('invalid login credentials') || lowerMsg.includes('invalid credentials')) {
+    return 'E-mail ou senha incorretos.';
+  }
+  if (lowerMsg.includes('user already exists') || lowerMsg.includes('email already in use')) {
+    return 'Este e-mail já está cadastrado no sistema.';
+  }
+  if (lowerMsg.includes('invalid confirmation code') || lowerMsg.includes('invalid token') || lowerMsg.includes('invalid otp')) {
+    return 'Código de verificação inválido.';
+  }
+  if (lowerMsg.includes('token has expired') || lowerMsg.includes('otp has expired')) {
+    return 'O código de verificação expirou. Solicite um novo código.';
+  }
+  if (lowerMsg.includes('captcha verification failed') || lowerMsg.includes('captcha token is invalid')) {
+    return 'Falha na verificação de robô (Captcha). Tente novamente.';
+  }
+  if (lowerMsg.includes('password should be at least')) {
+    return 'A senha não atende aos requisitos mínimos de segurança (mínimo de 8 caracteres e caracteres fortes).';
+  }
+  if (lowerMsg.includes('rate limit exceeded') || lowerMsg.includes('too many requests')) {
+    return 'Muitas solicitações enviadas. Aguarde um momento antes de tentar novamente.';
+  }
+  if (lowerMsg.includes('email not confirmed')) {
+    return 'Seu e-mail ainda não foi confirmado no sistema.';
+  }
+  if (lowerMsg.includes('network request failed') || lowerMsg.includes('failed to fetch')) {
+    return 'Falha na conexão com o servidor. Verifique sua conexão com a internet.';
+  }
+  
+  return msg;
+};
+
 const AdminLogin: React.FC = () => {
   const { user, login, error, clearError, isAdmin, isCorretor } = useAuth();
   const { showToast } = useToast();
@@ -129,7 +169,7 @@ const AdminLogin: React.FC = () => {
         showToast('Muitas tentativas de login. Conta bloqueada por 60 segundos.', 'error');
         setLoginAttempts(0); // Reset counter after lockout
       } else {
-        showToast(e.message || 'Erro ao realizar login.', 'error');
+        showToast(translateSupabaseError(e.message) || 'Erro ao realizar login.', 'error');
       }
 
       // Reset Captcha on error
@@ -237,7 +277,7 @@ const AdminLogin: React.FC = () => {
       setIsCodeSent(true);
       showToast('Código de verificação enviado para o seu e-mail.', 'success');
     } catch (err: any) {
-      showToast(err.message || 'Erro ao enviar código de verificação.', 'error');
+      showToast(translateSupabaseError(err.message) || 'Erro ao enviar código de verificação.', 'error');
       setRegisterCaptchaToken(null);
       setRegisterCaptchaKey(prev => prev + 1);
     } finally {
@@ -274,7 +314,7 @@ const AdminLogin: React.FC = () => {
         }
       }
     } catch (err: any) {
-      showToast(err.message || 'Erro ao verificar o código.', 'error');
+      showToast(translateSupabaseError(err.message) || 'Erro ao verificar o código.', 'error');
     } finally {
       setVerifyingCode(false);
     }
@@ -313,7 +353,6 @@ const AdminLogin: React.FC = () => {
       setRegNome('');
       setRegEmail('');
       setRegTelefone('');
-      setRegPerfil('Corretor');
       setRegCreci('');
       setRegSenha('');
       setRegConfirmarSenha('');
@@ -326,7 +365,7 @@ const AdminLogin: React.FC = () => {
       setGeneratedCode('');
       navigate('/login');
     } catch (err: any) {
-      showToast(err.message || 'Erro ao salvar o cadastro.', 'error');
+      showToast(translateSupabaseError(err.message) || 'Erro ao salvar o cadastro.', 'error');
     } finally {
       setSubmitting(false);
     }
@@ -343,7 +382,6 @@ const AdminLogin: React.FC = () => {
     setRegNome('');
     setRegEmail('');
     setRegTelefone('');
-    setRegPerfil('Corretor');
     setRegCreci('');
     setRegSenha('');
     setRegConfirmarSenha('');
@@ -360,7 +398,7 @@ const AdminLogin: React.FC = () => {
   // Expose authentication error from Context
   useEffect(() => {
     if (error) {
-      showToast(error, 'error');
+      showToast(translateSupabaseError(error), 'error');
       clearError();
     }
   }, [error, clearError, showToast]);
@@ -771,7 +809,11 @@ const AdminLogin: React.FC = () => {
                           <button
                             type="button"
                             disabled={sendingCode}
-                            onClick={handleSendCode}
+                            onClick={() => {
+                              setIsCodeSent(false);
+                              setRegisterCaptchaToken(null);
+                              setRegisterCaptchaKey(prev => prev + 1);
+                            }}
                             className="text-[10px] text-gray-400 hover:text-primary-medium font-semibold underline transition-colors cursor-pointer border-none bg-transparent"
                           >
                             Não recebeu o código? Enviar novamente

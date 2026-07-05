@@ -78,7 +78,7 @@ const App: React.FC = () => {
                     <Route path="/imoveis/editar/:id" element={<PropertyForm />} />
                     <Route path="/imoveis/categorias" element={<CategoriasList />} />
                     <Route path="/mensagens" element={<MessagesList />} />
-                    <Route path="/vistas" element={<VisitasList />} />
+                    <Route path="/visitas" element={<VisitasList />} />
                     <Route path="/clientes" element={<UsersList />} />
                     <Route path="/clientes/:id" element={<UserDetails />} />
                     <Route path="/gestao-usuarios" element={<GestaoUsuarios />} />
