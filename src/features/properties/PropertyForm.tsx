@@ -311,7 +311,7 @@ const PropertyForm: React.FC = () => {
       setImagens((prev) => [...prev, ...newImgs]);
       showToast('Imagem(ns) enviada(s) com sucesso!', 'success');
     } catch (err: any) {
-      console.error(err);
+      if (import.meta.env.DEV) console.error(err);
       showToast(err.message || 'Erro ao fazer upload da imagem.', 'error');
     } finally {
       setUploading(false);

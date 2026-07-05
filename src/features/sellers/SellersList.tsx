@@ -84,7 +84,7 @@ const SellersList: React.FC = () => {
       setFoto(publicUrl);
       showToast('Foto enviada com sucesso!', 'success');
     } catch (err: any) {
-      console.error(err);
+      if (import.meta.env.DEV) console.error(err);
       showToast(err.message || 'Erro ao enviar a foto.', 'error');
     } finally {
       setUploading(false);

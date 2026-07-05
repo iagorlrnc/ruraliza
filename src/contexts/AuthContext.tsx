@@ -32,24 +32,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Sync session on mount
   useEffect(() => {
     if (!isSupabaseConfigured()) {
-      // Look for a mock admin session in LocalStorage
-      const mockSession = localStorage.getItem('ruraliza_mock_admin_session');
-      if (mockSession) {
-        try {
-          const parsed = JSON.parse(mockSession);
-          // Sync with local users db in case status changed
-          const users = JSON.parse(localStorage.getItem('ruraliza_users') || '[]');
-          const synced = users.find((u: any) => u.id === parsed.id);
-          if (synced && synced.status === 'Ativo' && (synced.perfil === 'Administrador' || synced.perfil === 'Corretor')) {
-            setUser(synced);
-          } else {
-            localStorage.removeItem('ruraliza_mock_admin_session');
-            setUser(null);
-          }
-        } catch {
-          localStorage.removeItem('ruraliza_mock_admin_session');
-        }
-      }
+      console.warn('Supabase não está configurado. Autenticação indisponível.');
       setLoading(false);
       return;
     }
@@ -150,48 +133,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setLoading(true);
 
     if (!isSupabaseConfigured()) {
-      // Mock login check
-      await new Promise((resolve) => setTimeout(resolve, 800)); // simulate latency
-      
-      const users = JSON.parse(localStorage.getItem('ruraliza_users') || '[]');
-      const foundUser = users.find((u: any) => u.email.toLowerCase() === email.toLowerCase());
-
-      if (foundUser) {
-        const expectedPassword = foundUser.senha || 'admin123';
-        if (password === expectedPassword) {
-          if (foundUser.status === 'Pendente') {
-            setError('Seu cadastro está pendente de aprovação pelo administrador.');
-          } else if (foundUser.status === 'Inativo') {
-            setError('Seu acesso está inativo. Entre em contato com o administrador.');
-          } else if (foundUser.perfil !== 'Administrador' && foundUser.perfil !== 'Corretor') {
-            setError('Acesso negado: Perfil não autorizado a acessar o painel.');
-          } else {
-            setUser(foundUser);
-            localStorage.setItem('ruraliza_mock_admin_session', JSON.stringify(foundUser));
-          }
-        } else {
-          setError('E-mail ou senha incorretos.');
-        }
-      } else {
-        // Fallback for default hardcoded admin in case storage was cleared
-        if (email.toLowerCase() === 'contato@ruralizanegocios.com.br' && password === 'admin123') {
-          const mockAdmin: Usuario = {
-            id: 'user-admin-1',
-            nome: 'Renato Silva',
-            email: 'contato@ruralizanegocios.com.br',
-            telefone: '(11) 99999-9999',
-            cidade: 'Palmas',
-            perfil: 'Administrador',
-            status: 'Ativo',
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          };
-          setUser(mockAdmin);
-          localStorage.setItem('ruraliza_mock_admin_session', JSON.stringify(mockAdmin));
-        } else {
-          setError('Usuário não encontrado ou senha incorreta.');
-        }
-      }
+      setError('Sistema de autenticação não disponível. Contate o administrador.');
       setLoading(false);
       return;
     }
@@ -219,13 +161,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = async () => {
     setLoading(true);
-    if (!isSupabaseConfigured()) {
-      setUser(null);
-      localStorage.removeItem('ruraliza_mock_admin_session');
-      setLoading(false);
-      return;
-    }
-
     try {
       await supabase.auth.signOut();
       setUser(null);

@@ -187,15 +187,15 @@ const DetalheImovel: React.FC<DetalheImovelProps> = ({ id: idProp, isPreview = f
         if (!viewedList.includes(id)) {
           viewedList.push(id);
           localStorage.setItem(viewedKey, JSON.stringify(viewedList));
-          api.incrementPropertyViews(id).catch((err) =>
-            console.error('Error incrementing view count:', err)
-          );
+          api.incrementPropertyViews(id).catch((err) => {
+            if (import.meta.env.DEV) console.error('Error incrementing view count:', err);
+          });
         }
       } catch (e) {
         // Fallback in case localStorage is blocked
-        api.incrementPropertyViews(id).catch((err) =>
-          console.error('Error incrementing view count:', err)
-        );
+        api.incrementPropertyViews(id).catch((err) => {
+          if (import.meta.env.DEV) console.error('Error incrementing view count:', err);
+        });
       }
     }
   }, [id, isPreview]);

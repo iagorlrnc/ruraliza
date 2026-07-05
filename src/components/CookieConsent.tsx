@@ -21,25 +21,26 @@ const CookieConsent: React.FC = () => {
     marketing: true,
   });
 
+  const GA_TRACKING_ID = import.meta.env.VITE_GA_TRACKING_ID;
+
   const initializeAnalytics = () => {
-    if (document.getElementById('ruraliza-analytics-script')) return;
+    if (!GA_TRACKING_ID || document.getElementById('ruraliza-analytics-script')) return;
 
     // Inject Google Analytics tag dynamically
     const script = document.createElement('script');
     script.id = 'ruraliza-analytics-script';
-    script.src = 'https://www.googletagmanager.com/gtag/js?id=G-MOCKTRACK';
+    script.src = `https://www.googletagmanager.com/gtag/js?id=${GA_TRACKING_ID}`;
     script.async = true;
     document.head.appendChild(script);
 
     // Initialize global gtag function
     const scriptInit = document.createElement('script');
     scriptInit.id = 'ruraliza-analytics-init';
-    scriptInit.innerHTML = `
+    scriptInit.textContent = `
       window.dataLayer = window.dataLayer || [];
       function gtag(){dataLayer.push(arguments);}
       gtag('js', new Date());
-      gtag('config', 'G-MOCKTRACK', { 'anonymize_ip': true });
-      console.log('Google Analytics (G-MOCKTRACK) inicializado com sucesso via consentimento.');
+      gtag('config', '${GA_TRACKING_ID}', { 'anonymize_ip': true });
     `;
     document.head.appendChild(scriptInit);
   };
@@ -66,26 +67,23 @@ const CookieConsent: React.FC = () => {
         win.gtag = undefined;
       }
     }
-    win['ga-disable-G-MOCKTRACK'] = true;
+    if (GA_TRACKING_ID) {
+      win[`ga-disable-${GA_TRACKING_ID}`] = true;
+    }
   };
 
   const applyCookies = (prefs: CookiePreferences) => {
     // 1. Essential Cookies (always active)
     
     // 2. Functional Cookies
-    if (prefs.functional) {
-      console.log('Cookies Funcionais ativos: Permitindo persistência de tema.');
-    } else {
-      console.log('Cookies Funcionais inativos: Removendo preferências de tema armazenadas.');
+    if (!prefs.functional) {
       localStorage.removeItem('ruraliza_dark_mode');
     }
 
     // 3. Analytical & Marketing Cookies
     if (prefs.marketing) {
-      console.log('Cookies Analíticos/Marketing ativos: Inicializando scripts de rastreamento.');
       initializeAnalytics();
     } else {
-      console.log('Cookies Analíticos/Marketing inativos: Desativando scripts de rastreamento.');
       cleanupAnalytics();
     }
   };
@@ -105,7 +103,7 @@ const CookieConsent: React.FC = () => {
         setPreferences(parsed);
         applyCookies(parsed);
       } catch (e) {
-        console.error('Error parsing cookie consent preferences', e);
+        if (import.meta.env.DEV) console.error('Error parsing cookie consent preferences', e);
       }
     }
   }, []);

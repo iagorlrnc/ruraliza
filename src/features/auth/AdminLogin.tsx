@@ -20,6 +20,10 @@ const AdminLogin: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
+  // Rate limiting state
+  const [loginAttempts, setLoginAttempts] = useState(0);
+  const [lockoutUntil, setLockoutUntil] = useState<number | null>(null);
+
   // Captcha States
   const [loginCaptchaToken, setLoginCaptchaToken] = useState<string | null>(null);
   const [loginCaptchaKey, setLoginCaptchaKey] = useState(0);
@@ -34,7 +38,7 @@ const AdminLogin: React.FC = () => {
   const [regNome, setRegNome] = useState('');
   const [regEmail, setRegEmail] = useState('');
   const [regTelefone, setRegTelefone] = useState('');
-  const [regPerfil, setRegPerfil] = useState<'Administrador' | 'Corretor'>('Corretor');
+  const [regPerfil] = useState<'Corretor'>('Corretor');
   const [regCreci, setRegCreci] = useState('');
   const [regSenha, setRegSenha] = useState('');
   const [regConfirmarSenha, setRegConfirmarSenha] = useState('');
@@ -94,6 +98,13 @@ const AdminLogin: React.FC = () => {
       return;
     }
 
+    // Rate limiting check
+    if (lockoutUntil && Date.now() < lockoutUntil) {
+      const remainingSecs = Math.ceil((lockoutUntil - Date.now()) / 1000);
+      showToast(`Muitas tentativas. Aguarde ${remainingSecs}s antes de tentar novamente.`, 'error');
+      return;
+    }
+
     if (!loginCaptchaToken) {
       showToast('Por favor, confirme que você não é um robô.', 'error');
       return;
@@ -104,8 +115,23 @@ const AdminLogin: React.FC = () => {
 
     try {
       await login(email, password, loginCaptchaToken);
+      // Reset rate limiting on successful login
+      setLoginAttempts(0);
+      setLockoutUntil(null);
     } catch (e: any) {
-      showToast(e.message || 'Erro ao realizar login.', 'error');
+      const newAttempts = loginAttempts + 1;
+      setLoginAttempts(newAttempts);
+
+      // Progressive lockout: after 5 failed attempts, lock for 60 seconds
+      if (newAttempts >= 5) {
+        const lockoutMs = 60 * 1000; // 60 seconds
+        setLockoutUntil(Date.now() + lockoutMs);
+        showToast('Muitas tentativas de login. Conta bloqueada por 60 segundos.', 'error');
+        setLoginAttempts(0); // Reset counter after lockout
+      } else {
+        showToast(e.message || 'Erro ao realizar login.', 'error');
+      }
+
       // Reset Captcha on error
       setLoginCaptchaToken(null);
       setLoginCaptchaKey(prev => prev + 1);
@@ -202,8 +228,10 @@ const AdminLogin: React.FC = () => {
         // Mock Mode: Generate 6 digit code
         const code = Math.floor(100000 + Math.random() * 900000).toString();
         setGeneratedCode(code);
-        console.log('Ruraliza Mock OTP Code:', code);
-        showToast(`Código de verificação enviado! Para testes, use: ${code}`, 'success');
+        if (import.meta.env.DEV) {
+          console.log('Ruraliza Mock OTP Code:', code);
+          showToast(`Código de verificação enviado! Para testes, use: ${code}`, 'success');
+        }
       }
 
       setIsCodeSent(true);
@@ -504,19 +532,8 @@ const AdminLogin: React.FC = () => {
                     </div>
                   </div>
 
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-600 dark:text-zinc-400 mb-1">
-                      Perfil Desejado
-                    </label>
-                    <select
-                      value={regPerfil}
-                      onChange={(e) => setRegPerfil(e.target.value as any)}
-                      className="w-full text-xs rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-850 py-2.5 px-3 focus:outline-none focus:border-primary-medium dark:text-white"
-                    >
-                      <option value="Corretor">Corretor</option>
-                      <option value="Administrador">Administrador</option>
-                    </select>
-                  </div>
+                  {/* Perfil fixo como Corretor para segurança — promoção via Admin */}
+                  <input type="hidden" value="Corretor" />
 
                   {regPerfil === 'Corretor' && (
                     <div>

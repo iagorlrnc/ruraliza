@@ -57,7 +57,7 @@ const Home: React.FC = () => {
 
   const { data: testimonials = [] } = useQuery({
     queryKey: ['testimonials'],
-    queryFn: api.getTestimonials
+    queryFn: api.getApprovedTestimonials
   });
 
   const approvedTestimonials = testimonials.filter((t) => t.aprovado);

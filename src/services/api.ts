@@ -14,6 +14,10 @@ import {
   Categoria
 } from '../types';
 
+// Dev-only logging helpers — suppress internal details in production
+const devLog = (...args: any[]) => { if (import.meta.env.DEV) console.error(...args); };
+const devWarn = (...args: any[]) => { if (import.meta.env.DEV) console.warn(...args); };
+
 // Detect if Supabase is fully configured
 export const isSupabaseConfigured = (): boolean => {
   const url = import.meta.env.VITE_SUPABASE_URL;
@@ -46,7 +50,7 @@ export const api = {
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('Error fetching properties from Supabase:', error);
+      devLog('Error fetching properties from Supabase:', error);
       throw error;
     }
 
@@ -90,7 +94,7 @@ export const api = {
 
     if (error) {
       if (error.code === 'PGRST116') return undefined; // single row empty
-      console.error('Error fetching property by id from Supabase:', error);
+      devLog('Error fetching property by id from Supabase:', error);
       throw error;
     }
 
@@ -130,7 +134,7 @@ export const api = {
           p_imovel_id: id
         });
       } catch (err) {
-        console.warn('Failed to increment views on Supabase (this is normal if the SQL function or visualizacoes column is not created yet):', err);
+        devWarn('Failed to increment views on Supabase (this is normal if the SQL function or visualizacoes column is not created yet):', err);
       }
     }
   },
@@ -332,7 +336,10 @@ export const api = {
         return data;
       } else {
         // Usuário de Painel (Administrador/Corretor): cria no Supabase Auth + tabela pública via RPC seguro
-        const senhaFornecida = user.senha || 'ruraliza123';
+        if (!user.senha || user.senha.length < 8) {
+          throw new Error('Senha é obrigatória e deve ter no mínimo 8 caracteres para criar usuários de painel.');
+        }
+        const senhaFornecida = user.senha;
         
         const { data: newId, error: createError } = await supabase.rpc('admin_criar_usuario', {
           p_nome: user.nome,
@@ -368,7 +375,7 @@ export const api = {
     });
 
     if (error) {
-      console.error('Error deleting user from Supabase:', error);
+      devLog('Error deleting user from Supabase:', error);
       throw error;
     }
     return !!data;
@@ -391,7 +398,7 @@ export const api = {
     try {
       users = await api.getUsers();
     } catch (e) {
-      console.warn("Failed to load users for message assignment:", e);
+      devWarn("Failed to load users for message assignment:", e);
     }
 
     return (data || []).map((row: any) => ({
@@ -681,6 +688,22 @@ export const api = {
     return data || [];
   },
 
+  // Busca pública: apenas depoimentos aprovados
+  getApprovedTestimonials: async (): Promise<Depoimento[]> => {
+    if (!isSupabaseConfigured()) {
+      return [];
+    }
+
+    const { data, error } = await supabase
+      .from('tabela_depoimentos')
+      .select('*')
+      .eq('aprovado', true)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return data || [];
+  },
+
   saveTestimonial: async (testimonial: Partial<Depoimento> & { nome: string; cargo: string; texto: string }, captchaToken?: string): Promise<Depoimento> => {
     if (!isSupabaseConfigured()) {
       throw new Error('Supabase is not configured');
@@ -812,7 +835,7 @@ export const api = {
         totalVisualizacoes: totalDatabaseViews
       };
     } catch (e) {
-      console.error('Falha ao obter métricas do Supabase:', e);
+      devLog('Falha ao obter métricas do Supabase:', e);
       throw e;
     }
   },
@@ -828,7 +851,7 @@ export const api = {
       .maybeSingle();
 
     if (error) {
-      console.error('Error fetching configurations from Supabase:', error);
+      devLog('Error fetching configurations from Supabase:', error);
       throw error;
     }
     if (!data) {
@@ -849,7 +872,7 @@ export const api = {
       .from('tabela_configuracoes')
       .upsert({
         ...config,
-        id: config.id || 'c0b67540-3b00-4b08-8e6f-fb9f8ee18299',
+        id: config.id || undefined,
         latitude: config.latitude ? Number(config.latitude) : null,
         longitude: config.longitude ? Number(config.longitude) : null,
         updated_at: new Date().toISOString()
@@ -858,7 +881,7 @@ export const api = {
       .single();
 
     if (error) {
-      console.error('Erro ao salvar as configurações no Supabase:', error);
+      devLog('Erro ao salvar as configurações no Supabase:', error);
       throw error;
     }
     return {
@@ -879,7 +902,7 @@ export const api = {
       .order('created_at', { ascending: true });
 
     if (error) {
-      console.error('Error fetching sellers from Supabase:', error);
+      devLog('Error fetching sellers from Supabase:', error);
       throw error;
     }
     return data || [];
@@ -944,6 +967,24 @@ export const api = {
       throw new Error('Tipo de arquivo não permitido. Apenas imagens (JPEG, PNG, WEBP, GIF) são aceitas.');
     }
 
+    // Validação de magic bytes (file signature) para evitar bypass de MIME type
+    const magicBytesMap: Record<string, number[][]> = {
+      'image/jpeg': [[0xFF, 0xD8, 0xFF]],
+      'image/png': [[0x89, 0x50, 0x4E, 0x47]],
+      'image/gif': [[0x47, 0x49, 0x46, 0x38]],
+      'image/webp': [[0x52, 0x49, 0x46, 0x46]], // RIFF header
+    };
+    const headerBytes = new Uint8Array(await file.slice(0, 8).arrayBuffer());
+    const expectedSigs = magicBytesMap[file.type];
+    if (expectedSigs) {
+      const isValidSignature = expectedSigs.some(sig =>
+        sig.every((byte, idx) => headerBytes[idx] === byte)
+      );
+      if (!isValidSignature) {
+        throw new Error('O conteúdo do arquivo não corresponde ao tipo informado. Envie uma imagem válida.');
+      }
+    }
+
     // Validação de tamanho máximo (10MB)
     const maxSize = 10 * 1024 * 1024;
     if (file.size > maxSize) {
@@ -951,7 +992,7 @@ export const api = {
     }
 
     const fileExt = file.name.split('.').pop() || 'jpg';
-    const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
+    const fileName = `${crypto.randomUUID()}-${Date.now()}.${fileExt}`;
     const filePath = `${fileName}`;
 
     const { error } = await supabase.storage
@@ -959,7 +1000,7 @@ export const api = {
       .upload(filePath, file);
 
     if (error) {
-      console.error(`Error uploading to bucket ${bucket}:`, error);
+      devLog(`Error uploading to bucket ${bucket}:`, error);
       throw error;
     }
 
@@ -981,7 +1022,7 @@ export const api = {
       .order('nome', { ascending: true });
 
     if (error) {
-      console.error('Error fetching categories from Supabase:', error);
+      devLog('Error fetching categories from Supabase:', error);
       throw error;
     }
     return data || [];
