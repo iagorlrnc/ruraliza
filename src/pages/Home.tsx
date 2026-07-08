@@ -112,7 +112,7 @@ const Home: React.FC = () => {
 
   // Carousel states for Featured Properties
   const [featuredIndex, setFeaturedIndex] = useState(0);
-  const [itemsPerView, setItemsPerView] = useState(3);
+  const [itemsPerView, setItemsPerView] = useState(4);
 
   // Arrow navigation handlers for Featured Properties
   const handlePrevFeatured = () => {
@@ -131,10 +131,14 @@ const Home: React.FC = () => {
 
   useEffect(() => {
     const handleResize = () => {
-      if (window.innerWidth < 1024) {
+      if (window.innerWidth < 640) {
         setItemsPerView(1);
-      } else {
+      } else if (window.innerWidth < 768) {
+        setItemsPerView(2);
+      } else if (window.innerWidth < 1024) {
         setItemsPerView(3);
+      } else {
+        setItemsPerView(4);
       }
     };
     handleResize();
@@ -144,7 +148,7 @@ const Home: React.FC = () => {
 
   // Autoplay for featured properties
   useEffect(() => {
-    if (featuredProperties.length <= 3) return;
+    if (featuredProperties.length <= itemsPerView) return;
     const maxIndex = featuredProperties.length - itemsPerView;
     const interval = setInterval(() => {
       setFeaturedIndex((prev) => {
@@ -465,9 +469,11 @@ const Home: React.FC = () => {
 
             <div className="overflow-hidden w-full">
               <div 
-                className="flex transition-transform duration-500 ease-in-out gap-6"
+                className={`flex transition-transform duration-500 ease-in-out gap-6 ${
+                  featuredProperties.length < itemsPerView ? 'justify-center' : ''
+                }`}
                 style={{ 
-                  transform: `translateX(calc(-1 * (${featuredIndex} * (100% / ${itemsPerView}) + ${featuredIndex} * ${itemsPerView === 3 ? 8 : 24}px)))` 
+                  transform: `translateX(calc(-1 * (${featuredIndex} * (100% / ${itemsPerView}) + ${featuredIndex} * ${24 / itemsPerView}px)))` 
                 }}
               >
                 {featuredProperties.map((prop, idx) => (
@@ -477,7 +483,7 @@ const Home: React.FC = () => {
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true }}
                     transition={{ duration: 0.5, delay: idx * 0.05 }}
-                    className="group bg-white dark:bg-zinc-900 border border-gray-100 dark:border-zinc-800/80 rounded-none overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 flex flex-col h-full shrink-0 w-full lg:w-[calc((100%-48px)/3)]"
+                    className="group bg-white dark:bg-zinc-900 border border-gray-100 dark:border-zinc-800/80 rounded-none overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 flex flex-col h-full shrink-0 w-full sm:w-[calc((100%-24px)/2)] md:w-[calc((100%-48px)/3)] lg:w-[calc((100%-72px)/4)]"
                   >
                     <div className="relative aspect-[4/3] overflow-hidden">
                       <img
