@@ -47,6 +47,18 @@ Adicionamos avisos de consentimento obrigatórios (disclaimers) diretamente abai
 
 ---
 
+## 5. Requisitos de Senha em Tooltip Dinâmico (Cadastro)
+
+Ajustamos o validador de requisitos de força de senha no Passo 2 da tela de cadastro de corretores.
+
+- **Ocultação dos Requisitos e Rótulos**: A lista estática de requisitos de força da senha, assim como o texto identificador ("Força da Senha") e a pontuação literal (ex: "Senha Média"), foram completamente removidos da tela.
+- **Visual Limpo**: Restam no layout apenas a barra de progresso colorida e o ícone "i" de informação (`Info`) posicionado ao seu lado.
+- **Validação de Cores no Hover**: Ao passar o mouse por cima do ícone "i":
+  - Abre-se um painel de tooltip com a lista de requisitos.
+  - Cada requisito exibe uma bolinha indicadora: na cor **verde** se o requisito correspondente for atendido pela senha digitada, ou na cor **vermelha** se ainda não for atendido.
+
+---
+
 ## Verificação de Compilação
 
 O projeto foi compilado e empacotado para produção com sucesso através do comando `npm run build`, confirmando que não há erros de tipagem no TypeScript ou falhas na build do Vite.

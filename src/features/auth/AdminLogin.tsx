@@ -4,7 +4,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
 import { api, isSupabaseConfigured } from '../../services/api';
 import { supabase } from '../../lib/supabase';
-import { Lock, Mail, Eye, EyeOff, User, Phone, ShieldCheck, CheckCircle2, ArrowRight } from 'lucide-react';
+import { Lock, Mail, Eye, EyeOff, User, Phone, ShieldCheck, CheckCircle2, ArrowRight, Info } from 'lucide-react';
 import { maskPhone, maskCreci } from '../../utils/masks';
 import { useTheme } from '../../contexts/ThemeContext';
 import CaptchaWidget from '../../components/CaptchaWidget';
@@ -758,37 +758,44 @@ const AdminLogin: React.FC = () => {
                           </div>
                           
                           {regSenha && (
-                            <div className="mt-2 space-y-1 bg-black/[0.02] dark:bg-white/[0.02] p-3 rounded-xl border border-gray-100 dark:border-zinc-800/50">
-                              <div className="flex justify-between items-center text-[10px] mb-1">
-                                <span className="font-semibold text-gray-500 dark:text-zinc-400">Força da Senha:</span>
-                                <span className={`font-bold ${strength.textClass}`}>{strength.label}</span>
-                              </div>
-                              <div className="h-1.5 w-full bg-gray-100 dark:bg-zinc-800 rounded-full overflow-hidden">
-                                <div 
-                                  className={`h-full ${strength.color} transition-all duration-300`} 
-                                  style={{ width: `${(strength.score / 5) * 100}%` }}
-                                ></div>
-                              </div>
-                              <div className="text-[9px] text-gray-400 leading-tight space-y-1 mt-2 border-t border-gray-100 dark:border-zinc-800/40 pt-1.5">
-                                <div className="flex items-center gap-1.5">
-                                  <span className={regSenha.length >= 8 ? "text-green-500" : "text-gray-400"}>●</span>
-                                  <span className={regSenha.length >= 8 ? "text-green-600 dark:text-green-400 font-medium" : "text-gray-500"}>Mínimo de 8 caracteres</span>
+                            <div className="mt-1.5 w-full p-0">
+                              <div className="flex items-center gap-2">
+                                <div className="flex-1 h-1.5 bg-gray-100 dark:bg-zinc-800 rounded-full overflow-hidden">
+                                  <div 
+                                    className={`h-full ${strength.color} transition-all duration-300`} 
+                                    style={{ width: `${(strength.score / 5) * 100}%` }}
+                                  ></div>
                                 </div>
-                                <div className="flex items-center gap-1.5">
-                                  <span className={/[A-Z]/.test(regSenha) ? "text-green-500" : "text-gray-400"}>●</span>
-                                  <span className={/[A-Z]/.test(regSenha) ? "text-green-600 dark:text-green-400 font-medium" : "text-gray-500"}>Pelo menos uma letra maiúscula</span>
-                                </div>
-                                <div className="flex items-center gap-1.5">
-                                  <span className={/[a-z]/.test(regSenha) ? "text-green-500" : "text-gray-400"}>●</span>
-                                  <span className={/[a-z]/.test(regSenha) ? "text-green-600 dark:text-green-400 font-medium" : "text-gray-500"}>Pelo menos uma letra minúscula</span>
-                                </div>
-                                <div className="flex items-center gap-1.5">
-                                  <span className={/[0-9]/.test(regSenha) ? "text-green-500" : "text-gray-400"}>●</span>
-                                  <span className={/[0-9]/.test(regSenha) ? "text-green-600 dark:text-green-400 font-medium" : "text-gray-500"}>Pelo menos um número</span>
-                                </div>
-                                <div className="flex items-center gap-1.5">
-                                  <span className={/[^A-Za-z0-9]/.test(regSenha) ? "text-green-500" : "text-gray-400"}>●</span>
-                                  <span className={/[^A-Za-z0-9]/.test(regSenha) ? "text-green-600 dark:text-green-400 font-medium" : "text-gray-500"}>Pelo menos um caractere especial (ex: @, #, $, %)</span>
+                                
+                                {/* Info Tooltip Icon */}
+                                <div className="relative group cursor-help shrink-0 inline-flex items-center">
+                                  <Info className="h-4 w-4 text-gray-400 hover:text-primary-medium dark:text-zinc-400 dark:hover:text-primary-light transition-colors" />
+                                  
+                                  {/* Tooltip Popup */}
+                                  <div className="absolute right-0 bottom-6 z-30 hidden group-hover:block w-64 bg-white dark:bg-zinc-900 p-3.5 rounded-xl shadow-xl border border-gray-150 dark:border-zinc-800 space-y-1.5 text-[10px]">
+                                    <h4 className="font-bold text-gray-700 dark:text-zinc-300 mb-1 font-sans">Requisitos da Senha:</h4>
+                                    
+                                    <div className="flex items-center gap-2">
+                                      <span className={regSenha.length >= 8 ? "text-green-500" : "text-red-500"}>●</span>
+                                      <span className={regSenha.length >= 8 ? "text-green-600 dark:text-green-400 font-medium" : "text-red-500 dark:text-red-400 font-medium"}>Mínimo de 8 caracteres</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      <span className={/[A-Z]/.test(regSenha) ? "text-green-500" : "text-red-500"}>●</span>
+                                      <span className={/[A-Z]/.test(regSenha) ? "text-green-600 dark:text-green-400 font-medium" : "text-red-500 dark:text-red-400 font-medium"}>Pelo menos uma letra maiúscula</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      <span className={/[a-z]/.test(regSenha) ? "text-green-500" : "text-red-500"}>●</span>
+                                      <span className={/[a-z]/.test(regSenha) ? "text-green-600 dark:text-green-400 font-medium" : "text-red-500 dark:text-red-400 font-medium"}>Pelo menos uma letra minúscula</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      <span className={/[0-9]/.test(regSenha) ? "text-green-500" : "text-red-500"}>●</span>
+                                      <span className={/[0-9]/.test(regSenha) ? "text-green-600 dark:text-green-400 font-medium" : "text-red-500 dark:text-red-400 font-medium"}>Pelo menos um número</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      <span className={/[^A-Za-z0-9]/.test(regSenha) ? "text-green-500" : "text-red-500"}>●</span>
+                                      <span className={/[^A-Za-z0-9]/.test(regSenha) ? "text-green-600 dark:text-green-400 font-medium" : "text-red-500 dark:text-red-400 font-medium"}>Pelo menos um caractere especial</span>
+                                    </div>
+                                  </div>
                                 </div>
                               </div>
                             </div>
