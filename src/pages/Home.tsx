@@ -438,11 +438,11 @@ const Home: React.FC = () => {
         {loadingProperties ? (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="bg-white dark:bg-zinc-900 border border-gray-100 dark:border-zinc-800 rounded-2xl overflow-hidden shadow-sm h-96 skeleton-shimmer"></div>
+              <div key={i} className="bg-white dark:bg-zinc-900 border border-gray-100 dark:border-zinc-800 rounded-xl overflow-hidden shadow-sm h-96 skeleton-shimmer"></div>
             ))}
           </div>
         ) : featuredProperties.length === 0 ? (
-          <div className="bg-white dark:bg-zinc-900 border border-gray-150 dark:border-zinc-800 p-8 rounded-3xl shadow-sm text-center">
+          <div className="bg-white dark:bg-zinc-900 border border-gray-150 dark:border-zinc-800 p-8 rounded-xl shadow-sm text-center">
             <p className="text-sm text-gray-500 dark:text-zinc-400 font-medium">Sem informações no momento.</p>
           </div>
         ) : (
@@ -569,7 +569,7 @@ const Home: React.FC = () => {
           </div>
 
           {categories.length === 0 ? (
-            <div className="text-center py-8 border border-white/10 rounded-2xl bg-white/[0.02] backdrop-blur-[2px]">
+            <div className="text-center py-8 border border-white/10 rounded-xl bg-white/[0.02] backdrop-blur-[2px]">
               <p className="text-xs text-brand-beige-dark/60 font-medium">Nenhuma categoria cadastrada no momento.</p>
             </div>
           ) : (
@@ -609,7 +609,7 @@ const Home: React.FC = () => {
                       viewport={{ once: true }}
                       transition={{ duration: 0.4, delay: idx * 0.05 }}
                       onClick={() => navigate(`/imoveis?tipo=${encodeURIComponent(cat.name)}`)}
-                      className="group relative h-40 rounded-xl overflow-hidden cursor-pointer shadow-md shrink-0 text-left"
+                      className="group relative h-40 rounded-none overflow-hidden cursor-pointer shadow-md shrink-0 text-left"
                       style={{
                         width: `calc((100% - ${(catItemsPerView - 1) * 16}px) / ${catItemsPerView})`
                       }}
@@ -804,7 +804,7 @@ const Home: React.FC = () => {
           whileInView={{ opacity: 1, scale: 1 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
-          className="bg-white dark:bg-zinc-900 border border-gray-100 dark:border-zinc-800/80 rounded-3xl shadow-xl overflow-hidden grid grid-cols-1 md:grid-cols-5"
+          className="bg-white dark:bg-zinc-900 border border-gray-100 dark:border-zinc-800/80 rounded-xl shadow-xl overflow-hidden grid grid-cols-1 md:grid-cols-5"
         >
           {/* Info panel */}
           <div className="md:col-span-2 bg-primary-dark text-white p-8 flex flex-col justify-between space-y-8">
@@ -951,6 +951,13 @@ const Home: React.FC = () => {
             >
               {messageMutation.isPending ? 'Enviando...' : 'Enviar Mensagem'}
             </button>
+            <p className="text-[10px] text-gray-400 dark:text-zinc-550 mt-2.5 text-center">
+              Ao enviar, você confirma que está de acordo com a nossa{' '}
+              <a href="/politica-de-privacidade" className="text-primary-medium hover:underline font-semibold">
+                Política de Privacidade
+              </a>{' '}
+              e com o uso e processamento seguro dos seus dados.
+            </p>
           </form>
         </motion.div>
       </section>
@@ -962,7 +969,7 @@ const Home: React.FC = () => {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
-          className="bg-white dark:bg-zinc-900 border border-gray-150 dark:border-zinc-800/80 rounded-3xl p-8 shadow-lg text-left space-y-6"
+          className="bg-white dark:bg-zinc-900 border border-gray-150 dark:border-zinc-800/80 rounded-xl p-8 shadow-lg text-left space-y-6"
         >
           <div>
             <h3 className="font-poppins text-lg font-bold text-gray-800 dark:text-white">
@@ -1031,6 +1038,13 @@ const Home: React.FC = () => {
             >
               {testimonialMutation.isPending ? 'Enviando avaliação...' : 'Enviar Depoimento'}
             </button>
+            <p className="text-[10px] text-gray-400 dark:text-zinc-550 mt-2.5 text-center">
+              Ao enviar, você confirma que está de acordo com a nossa{' '}
+              <a href="/politica-de-privacidade" className="text-primary-medium hover:underline font-semibold">
+                Política de Privacidade
+              </a>{' '}
+              e com o uso e processamento seguro dos seus dados.
+            </p>
           </form>
         </motion.div>
       </section>

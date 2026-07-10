@@ -7,13 +7,11 @@ interface CaptchaWidgetProps {
   onExpire: () => void;
 }
 
-// DEFINA COMO true PARA ATIVAR O CAPTCHA NOVAMENTE NO FUTURO
+// Definir como true para ativar o captcha
 const ENABLE_CAPTCHA = false;
 
 export const CaptchaWidget: React.FC<CaptchaWidgetProps> = ({ onVerify, onExpire }) => {
   const { darkMode } = useTheme();
-  
-  // Use VITE_TURNSTILE_SITE_KEY from environment or fallback to Cloudflare test site key
   const siteKey = import.meta.env.VITE_TURNSTILE_SITE_KEY;
 
   useEffect(() => {

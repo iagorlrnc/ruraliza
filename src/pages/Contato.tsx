@@ -288,6 +288,13 @@ const Contato: React.FC = () => {
               <MessageSquare className="h-4 w-4" />
               {mutation.isPending ? 'Enviando...' : 'Enviar Mensagem'}
             </button>
+            <p className="text-[10px] text-gray-400 dark:text-zinc-500 mt-2.5 text-center">
+              Ao enviar, você confirma que está de acordo com a nossa{' '}
+              <a href="/politica-de-privacidade" className="text-primary-medium hover:underline font-semibold">
+                Política de Privacidade
+              </a>{' '}
+              e com o uso e processamento seguro dos seus dados.
+            </p>
           </form>
         </div>
       </section>

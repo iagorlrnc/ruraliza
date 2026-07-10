@@ -6,7 +6,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { formatDate, formatPhone } from '../../utils/format';
 import { 
   Search, ShieldCheck, BadgeCheck, Edit2, Check, X, 
-  Save, AlertCircle, XCircle, Trash2 
+  Save, AlertCircle, XCircle, Trash2, Info 
 } from 'lucide-react';
 import { Usuario, PerfilUsuario, StatusUsuario } from '../../types';
 import { maskPhone, maskCreci } from '../../utils/masks';
@@ -276,7 +276,19 @@ const GestaoUsuarios: React.FC = () => {
                 {filteredUsers.map((u) => (
                   <tr key={u.id} className="hover:bg-primary-medium/5 dark:hover:bg-zinc-800/80 transition-colors">
                     <td className="px-6 py-4 font-bold text-gray-800 dark:text-white">
-                      {u.nome} {u.id === currentUser?.id && <span className="text-[10px] text-primary-medium font-normal">(Você)</span>}
+                      <div className="flex items-center gap-2">
+                        {u.email_confirmado === false && (
+                          <div 
+                            className="relative group cursor-help inline-flex items-center text-red-600 dark:text-red-400"
+                            title="O usuário não confirmou o e-mail"
+                          >
+                            <Info className="h-4 w-4 shrink-0" />
+                          </div>
+                        )}
+                        <span>
+                          {u.nome} {u.id === currentUser?.id && <span className="text-[10px] text-primary-medium font-normal ml-1">(Você)</span>}
+                        </span>
+                      </div>
                     </td>
                     <td className="px-6 py-4">
                       <div className="space-y-0.5 text-[11px] text-gray-500 dark:text-zinc-400">

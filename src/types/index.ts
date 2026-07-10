@@ -13,6 +13,7 @@ export interface Usuario {
   senha?: string;
   created_at: string;
   updated_at: string;
+  email_confirmado?: boolean;
   // CRM helper stats (calculated or aggregated)
   mensagens_enviadas_count?: number;
   imoveis_visualizados_count?: number;
